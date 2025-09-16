@@ -20,6 +20,8 @@
             --card-bg-color: #ffffff;
             --text-color: #3d3d3d;
             --border-color: #dde8d4;
+            --error-color: #D8000C;
+            --error-bg-color: #FFD2D2;
         }
 
         body {
@@ -186,12 +188,25 @@
             background-color: var(--primary-color);
         }
 
-        /* --- Loading Spinner --- */
+        /* --- Loading & Error --- */
         #loader {
             text-align: center;
             padding: 40px;
             font-size: 1.2em;
             color: var(--secondary-color);
+        }
+
+        .error-message {
+            background-color: var(--error-bg-color);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: left;
+        }
+        .error-message strong {
+            display: block;
+            margin-bottom: 10px;
         }
         
         /* --- 頁尾 --- */
@@ -299,35 +314,59 @@
             const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
             const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
             
-            // 存放分類和工具資料的DOM元素
             const categoryNav = document.getElementById('category-nav');
             const toolsGrid = document.getElementById('tools-grid');
             const loader = document.getElementById('loader');
 
-            // 簡易 CSV 解析函式
-            function parseCSV(text) {
-                const lines = text.trim().split('\n');
-                const headers = lines[0].split(',').map(h => h.trim());
-                return lines.slice(1).map(line => {
-                    const values = line.split(',').map(v => v.trim());
-                    let obj = {};
-                    headers.forEach((header, i) => {
-                        obj[header] = values[i];
-                    });
-                    return obj;
-                });
+            function displayError(message, suggestion) {
+                console.error(message);
+                toolsGrid.innerHTML = `
+                    <div class="error-message">
+                        <strong>讀取資料時發生錯誤：</strong>
+                        <p>${message}</p>
+                        <p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p>
+                    </div>`;
+                if (loader) loader.style.display = 'none';
             }
 
-            // 渲染工具卡片
+            // 較穩健的 CSV 解析函式，可以處理欄位中包含逗號的情況 (需用引號包覆)
+            function parseCSV(text) {
+                const lines = text.trim().replace(/\r/g, '').split('\n');
+                if (lines.length < 2) return [];
+
+                const headers = lines[0].split(',').map(h => h.trim());
+                const data = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '') continue;
+
+                    const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const obj = {};
+                    
+                    headers.forEach((header, index) => {
+                        if (values[index]) {
+                            let value = values[index].trim();
+                            if (value.startsWith('"') && value.endsWith('"')) {
+                                value = value.substring(1, value.length - 1);
+                            }
+                            obj[header] = value.replace(/""/g, '"');
+                        } else {
+                            obj[header] = '';
+                        }
+                    });
+                    data.push(obj);
+                }
+                return data;
+            }
+
             function renderTools(tools) {
-                toolsGrid.innerHTML = ''; // 清空現有內容
+                toolsGrid.innerHTML = '';
                 if (!tools || tools.length === 0) {
                     toolsGrid.innerHTML = '<p>這個分類下沒有找到任何工具。</p>';
                     return;
                 }
 
                 tools.forEach(tool => {
-                    // 檢查確保所有欄位都有值
                     const name = tool['名稱'] || '無標題';
                     const description = tool['說明'] || '無描述';
                     const link = tool['連結'] || '#';
@@ -336,57 +375,63 @@
                     const card = document.createElement('div');
                     card.className = 'tool-card';
                     card.innerHTML = `
-                        <img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https.placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';">
+                        <img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';">
                         <div class="tool-card-content">
                             <h3>${name}</h3>
                             <p>${description}</p>
                             <a href="${link}" class="tool-link" target="_blank" rel="noopener noreferrer">前往使用</a>
-                        </div>
-                    `;
+                        </div>`;
                     toolsGrid.appendChild(card);
                 });
             }
             
-            // 根據 GID 讀取特定工作表的工具
             async function fetchToolsByGid(gid) {
                 loader.style.display = 'block';
                 toolsGrid.innerHTML = '';
 
                 try {
                     const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。狀態碼: ${response.status}`);
                     const csvText = await response.text();
                     const tools = parseCSV(csvText);
                     renderTools(tools);
                 } catch (error) {
-                    console.error('讀取工具資料失敗:', error);
-                    toolsGrid.innerHTML = '<p>抱歉，讀取工具資料時發生錯誤，請稍後再試。</p>';
+                    displayError(error.message, `請確認 GID 為 ${gid} 的工作表已正確發佈。`);
                 } finally {
                     loader.style.display = 'none';
                 }
             }
 
-            // 讀取並渲染分類
             async function fetchCategories() {
-                const categoryGid = '0'; // '分類' 工作表的 GID 通常是 0
+                const categoryGid = '0';
                 try {
                     const response = await fetch(`${baseCsvUrl}&gid=${categoryGid}`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`無法載入 '分類' 工作表 (GID: ${categoryGid})。`);
+                    }
                     const csvText = await response.text();
+                     if (csvText.trim().startsWith('<!DOCTYPE html>')) {
+                        throw new Error("從 Google Sheets 獲取的資料格式不正確，可能需要重新發佈。");
+                    }
                     const categories = parseCSV(csvText);
+
+                    if (categories.length === 0) {
+                        throw new Error("在 '分類' 工作表中找不到任何資料。");
+                    }
                     
                     categoryNav.innerHTML = '';
+                    let hasValidCategory = false;
                     categories.forEach((cat, index) => {
                         const catName = cat['分類'];
                         const catGid = cat['gid'];
                         if (catName && catGid) {
+                            hasValidCategory = true;
                             const button = document.createElement('button');
                             button.className = 'category-button';
                             button.textContent = catName;
                             button.dataset.gid = catGid;
                             
                             button.addEventListener('click', () => {
-                                // 處理按鈕的 active 狀態
                                 document.querySelectorAll('.category-button').forEach(btn => btn.classList.remove('active'));
                                 button.classList.add('active');
                                 fetchToolsByGid(catGid);
@@ -394,7 +439,6 @@
                             
                             categoryNav.appendChild(button);
 
-                            // 自動載入第一個分類的內容
                             if (index === 0) {
                                 button.classList.add('active');
                                 fetchToolsByGid(catGid);
@@ -402,13 +446,21 @@
                         }
                     });
 
+                    if (!hasValidCategory) {
+                         throw new Error("成功讀取 '分類' 工作表，但內容格式不符。");
+                    }
+
                 } catch (error) {
-                    console.error('讀取分類資料失敗:', error);
-                    toolsGrid.innerHTML = '<p>抱歉，讀取分類資料時發生錯誤，請檢查您的 Google Sheet 設定是否正確。</p>';
+                    let suggestion = "請檢查您的 Google Sheet '發布到網路' 的設定，並確認 '分類' 工作表的 GID 與欄位名稱 ('分類', 'gid') 是否正確。";
+                    if (error.message.includes("找不到任何資料")) {
+                        suggestion = "請確認您的 '分類' 工作表除了標題列（'分類', 'gid'）之外，至少還有一筆資料。";
+                    } else if (error.message.includes("格式不正確")) {
+                        suggestion = "請前往您的 Google Sheet，點選『檔案』 > 『共用』 > 『發佈到網路』，確認發佈的格式為 CSV，且權限為公開。";
+                    }
+                    displayError(error.message, suggestion);
                 }
             }
 
-            // 網頁載入後，開始執行
             fetchCategories();
         });
     </script>
