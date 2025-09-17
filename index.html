@@ -33,7 +33,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px; /* 從 900px 放大，讓內容區更寬 */
             margin: 0 auto;
             padding: 20px;
         }
@@ -68,11 +68,19 @@
             color: var(--secondary-color);
             font-weight: 600;
             font-size: 1.1em;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
+            padding-bottom: 8px; /* 為底線預留空間 */
+            border-bottom: 3px solid transparent; /* 預設底線為透明 */
         }
 
         nav a:hover {
             color: var(--primary-color);
+        }
+        
+        /* 新增：高亮頁籤的底線樣式 */
+        nav a.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
 
         /* --- 內容區塊通用樣式 --- */
@@ -82,6 +90,11 @@
             margin-top: 30px;
             border-radius: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            display: none; /* 預設隱藏所有區塊 */
+        }
+
+        .page-section.active {
+            display: block; /* 只顯示 active 的區塊 */
         }
 
         .page-section h2 {
@@ -127,8 +140,9 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
+            /* 讓卡片基礎寬度變大，螢幕夠寬時會自動放大到接近 600px */
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px; /* 增加間距 */
             margin-top: 30px;
         }
         
@@ -150,9 +164,9 @@
         
         .tool-card-image {
             width: 100%;
-            height: 150px;
-            object-fit: cover;
-            background-color: #f0f0f0;
+            height: auto; /* 自動高度，維持圖片原始比例 */
+            background-color: #f0f0f0; /* 保留背景色以防圖片載入失敗 */
+            display: block; /* 避免圖片下方出現小空隙 */
         }
 
         .tool-card-content {
@@ -189,11 +203,40 @@
         }
 
         /* --- Loading & Error --- */
-        #loader {
-            text-align: center;
-            padding: 40px;
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none; /* 預設隱藏 */
+        }
+
+        .loading-spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .loading-overlay p {
+            margin-top: 20px;
             font-size: 1.2em;
-            color: var(--secondary-color);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .error-message {
@@ -260,21 +303,27 @@
 </head>
 <body>
 
+    <!-- 全螢幕載入畫面 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>載入中...</p>
+    </div>
+
     <div class="container">
         <!-- 頁首：網站標題和主選單 -->
         <header>
             <div class="logo"><img src="https://lh3.googleusercontent.com/a/ACg8ocK0Sd79qNlGdQiGKEoKfuQxqHiVCHuyH4Sw5qFkJfpy4K_J23I=s288-c-no" alt="PandaPanda Logo"> PandaPanda的AI日常</div>
             <nav>
-                <a href="#about">關於本站</a>
-                <a href="#tools">小工具</a>
+                <a href="#" class="nav-link active" data-page="about">關於本站</a>
+                <a href="#" class="nav-link" data-page="tools">小工具</a>
                 <a href="https://www.youtube.com/channel/UCKh0gyNAiQJRH-PkIGNkEfg" target="_blank" rel="noopener noreferrer">YouTube頻道</a>
                 <a href="https://www.facebook.com/profile.php?id=61578859210871&locale=zh_TW" target="_blank" rel="noopener noreferrer">Facebook</a>
             </nav>
         </header>
 
         <main>
-            <!-- 區塊1: 網站介紹 -->
-            <section id="about" class="page-section">
+            <!-- 區塊1: 網站介紹 (預設顯示) -->
+            <section id="about" class="page-section active">
                 <h2>歡迎來到 PandaPanda 的 AI 世界</h2>
                 <p>
                     歡迎來到PandaPanda的AI日常
@@ -283,7 +332,7 @@
                 </p>
             </section>
 
-            <!-- 區塊2: 小工具 (動態載入) -->
+            <!-- 區塊2: 小工具 (預設隱藏) -->
             <section id="tools" class="page-section">
                 <h2>AI 小工具區</h2>
                 <p>
@@ -293,7 +342,7 @@
                 <div id="category-nav"></div>
                 <!-- 小工具卡片將會動態插入到這裡 -->
                 <div id="tools-grid" class="tools-grid">
-                    <div id="loader">正在從 Google Sheets 讀取資料...</div>
+                    <!-- 初始的 loader 文字已由全螢幕載入畫面取代 -->
                 </div>
             </section>
         </main>
@@ -310,13 +359,54 @@
     <!-- JavaScript 程式碼 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Google Sheet 的基本資訊
+            // --- 頁面導覽邏輯 ---
+            const navLinks = document.querySelectorAll('nav a.nav-link');
+            const pageSections = document.querySelectorAll('.page-section');
+            let toolsLoaded = false; 
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault(); 
+                    const pageId = this.dataset.page;
+
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    pageSections.forEach(section => {
+                        section.classList.toggle('active', section.id === pageId);
+                    });
+                    
+                    if (pageId === 'tools' && !toolsLoaded) {
+                        fetchCategories();
+                        toolsLoaded = true;
+                    }
+                });
+            });
+
+            // --- Google Sheet 資料讀取邏輯 ---
             const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
             const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
             
             const categoryNav = document.getElementById('category-nav');
             const toolsGrid = document.getElementById('tools-grid');
-            const loader = document.getElementById('loader');
+            const loadingOverlay = document.getElementById('loading-overlay');
+
+            const dataCache = {}; // 快取物件
+            let loadingTimeout; // 用於存放重新載入的計時器
+
+            function showLoader() {
+                loadingOverlay.style.display = 'flex';
+                // 設定10秒後重新載入的計時器
+                loadingTimeout = setTimeout(() => {
+                    window.location.reload();
+                }, 10000); // 10000 毫秒 = 10 秒
+            }
+
+            function hideLoader() {
+                // 清除計時器，因為載入已完成 (無論成功或失敗)
+                clearTimeout(loadingTimeout);
+                loadingOverlay.style.display = 'none';
+            }
 
             function displayError(message, suggestion) {
                 console.error(message);
@@ -326,23 +416,18 @@
                         <p>${message}</p>
                         <p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p>
                     </div>`;
-                if (loader) loader.style.display = 'none';
             }
 
-            // 較穩健的 CSV 解析函式，可以處理欄位中包含逗號的情況 (需用引號包覆)
+            // 較穩健的 CSV 解析函式
             function parseCSV(text) {
                 const lines = text.trim().replace(/\r/g, '').split('\n');
                 if (lines.length < 2) return [];
-
                 const headers = lines[0].split(',').map(h => h.trim());
                 const data = [];
-
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim() === '') continue;
-
                     const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     const obj = {};
-                    
                     headers.forEach((header, index) => {
                         if (values[index]) {
                             let value = values[index].trim();
@@ -365,17 +450,15 @@
                     toolsGrid.innerHTML = '<p>這個分類下沒有找到任何工具。</p>';
                     return;
                 }
-
                 tools.forEach(tool => {
                     const name = tool['名稱'] || '無標題';
                     const description = tool['說明'] || '無描述';
                     const link = tool['連結'] || '#';
-                    const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No+Image';
-
+                    const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No Image';
                     const card = document.createElement('div');
                     card.className = 'tool-card';
                     card.innerHTML = `
-                        <img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';">
+                        <img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https.placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';">
                         <div class="tool-card-content">
                             <h3>${name}</h3>
                             <p>${description}</p>
@@ -386,38 +469,44 @@
             }
             
             async function fetchToolsByGid(gid) {
-                loader.style.display = 'block';
                 toolsGrid.innerHTML = '';
+                showLoader();
 
+                // 核心快取邏輯：先檢查快取
+                if (dataCache[gid]) {
+                    renderTools(dataCache[gid]);
+                    hideLoader();
+                    return; // 從快取載入成功，結束函式
+                }
+
+                // 如果快取中沒有，才從網路抓取
                 try {
                     const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
                     if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。狀態碼: ${response.status}`);
                     const csvText = await response.text();
                     const tools = parseCSV(csvText);
+                    
+                    dataCache[gid] = tools; // 抓取成功後，存入快取
                     renderTools(tools);
                 } catch (error) {
                     displayError(error.message, `請確認 GID 為 ${gid} 的工作表已正確發佈。`);
                 } finally {
-                    loader.style.display = 'none';
+                    hideLoader();
                 }
             }
 
             async function fetchCategories() {
                 const categoryGid = '0';
+                showLoader();
                 try {
                     const response = await fetch(`${baseCsvUrl}&gid=${categoryGid}`);
-                    if (!response.ok) {
-                        throw new Error(`無法載入 '分類' 工作表 (GID: ${categoryGid})。`);
-                    }
+                    if (!response.ok) throw new Error(`無法載入 '分類' 工作表 (GID: ${categoryGid})。`);
+                    
                     const csvText = await response.text();
-                     if (csvText.trim().startsWith('<!DOCTYPE html>')) {
-                        throw new Error("從 Google Sheets 獲取的資料格式不正確，可能需要重新發佈。");
-                    }
+                     if (csvText.trim().startsWith('<!DOCTYPE html>')) throw new Error("從 Google Sheets 獲取的資料格式不正確，可能需要重新發佈。");
+                    
                     const categories = parseCSV(csvText);
-
-                    if (categories.length === 0) {
-                        throw new Error("在 '分類' 工作表中找不到任何資料。");
-                    }
+                    if (categories.length === 0) throw new Error("在 '分類' 工作表中找不到任何資料。");
                     
                     categoryNav.innerHTML = '';
                     let hasValidCategory = false;
@@ -429,39 +518,27 @@
                             const button = document.createElement('button');
                             button.className = 'category-button';
                             button.textContent = catName;
-                            button.dataset.gid = catGid;
                             
                             button.addEventListener('click', () => {
                                 document.querySelectorAll('.category-button').forEach(btn => btn.classList.remove('active'));
                                 button.classList.add('active');
                                 fetchToolsByGid(catGid);
                             });
-                            
                             categoryNav.appendChild(button);
-
+                            
                             if (index === 0) {
                                 button.classList.add('active');
-                                fetchToolsByGid(catGid);
+                                fetchToolsByGid(catGid); // 自動載入第一個分類
                             }
                         }
                     });
-
-                    if (!hasValidCategory) {
-                         throw new Error("成功讀取 '分類' 工作表，但內容格式不符。");
-                    }
+                    if (!hasValidCategory) throw new Error("成功讀取 '分類' 工作表，但內容格式不符。");
 
                 } catch (error) {
-                    let suggestion = "請檢查您的 Google Sheet '發布到網路' 的設定，並確認 '分類' 工作表的 GID 與欄位名稱 ('分類', 'gid') 是否正確。";
-                    if (error.message.includes("找不到任何資料")) {
-                        suggestion = "請確認您的 '分類' 工作表除了標題列（'分類', 'gid'）之外，至少還有一筆資料。";
-                    } else if (error.message.includes("格式不正確")) {
-                        suggestion = "請前往您的 Google Sheet，點選『檔案』 > 『共用』 > 『發佈到網路』，確認發佈的格式為 CSV，且權限為公開。";
-                    }
-                    displayError(error.message, suggestion);
+                    displayError(error.message, "請檢查您的 Google Sheet '發布到網路' 的設定，並確認 '分類' 工作表的 GID 與欄位名稱 ('分類', 'gid') 是否正確。");
+                    hideLoader(); // 發生錯誤也要隱藏載入畫面
                 }
             }
-
-            fetchCategories();
         });
     </script>
 </body>
