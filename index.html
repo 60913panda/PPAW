@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PandaPanda 的 AI 日常</title>
+    <link rel="icon" href="https://lh3.googleusercontent.com/a/ACg8ocK0Sd79qNlGdQiGKEoKfuQxqHiVCHuyH4Sw5qFkJfpy4K_J23I=s288-c-no">
     
     <!-- 引入 Google Fonts 使字體更美觀 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -395,6 +396,9 @@
             let loadingTimeout; // 用於存放重新載入的計時器
 
             function showLoader() {
+                // 【關鍵修正】在設定新的計時器之前，先清除任何可能存在的舊計時器
+                clearTimeout(loadingTimeout);
+
                 loadingOverlay.style.display = 'flex';
                 // 設定10秒後重新載入的計時器
                 loadingTimeout = setTimeout(() => {
