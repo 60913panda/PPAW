@@ -54,6 +54,7 @@
             color: var(--primary-color);
             display: flex;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .logo img {
@@ -61,6 +62,12 @@
             height: 45px;
             margin-right: 12px;
             border-radius: 50%;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         nav a {
@@ -72,6 +79,7 @@
             transition: all 0.3s ease;
             padding-bottom: 8px;
             border-bottom: 3px solid transparent;
+            white-space: nowrap;
         }
 
         nav a:hover {
@@ -121,6 +129,7 @@
             font-weight: 700;
             color: var(--primary-color);
             margin: 0;
+            line-height: 1.4;
         }
         
         #countdown-timer {
@@ -351,6 +360,13 @@
         }
 
         /* --- 響應式設計：平板與手機 --- */
+        @media (max-width: 880px) {
+            header {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+
         @media (max-width: 768px) {
             .page-section {
                 padding: 30px;
@@ -368,20 +384,7 @@
             }
         }
         
-        @media (max-width: 680px) {
-            header {
-                flex-direction: column;
-                gap: 20px;
-            }
-            nav {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
-            }
-            nav a {
-                margin-left: 10px;
-            }
+        @media (max-width: 480px) {
              .page-section {
                 padding: 25px;
             }
@@ -401,16 +404,16 @@
         <header>
             <div class="logo"><img src="https://lh3.googleusercontent.com/a/ACg8ocK0Sd79qNlGdQiGKEoKfuQxqHiVCHuyH4Sw5qFkJfpy4K_J23I=s288-c-no" alt="PandaPanda Logo"> PandaPanda的AI日常</div>
             <nav>
-                <a href="#" class="nav-link active" data-page="about">關於本站</a>
+                <a href="#" class="nav-link" data-page="about">關於本站</a>
                 <a href="#" class="nav-link" data-page="tools">自製網站</a>
-                <a href="https://m.youtube.com/@pandapanda%E7%9A%84AI%E6-97%A5%E5-B8%B8" target="_blank" rel="noopener noreferrer">YouTube頻道</a>
+                <a href="https://m.youtube.com/@pandapanda%E7%9A%84AI%E6%97%A5%E5%B8%B8" target="_blank" rel="noopener noreferrer">YouTube頻道</a>
                 <a href="https://www.facebook.com/profile.php?id=61578859210871&locale=zh_TW" target="_blank" rel="noopener noreferrer">Facebook</a>
             </nav>
         </header>
 
         <main>
             <!-- 區塊1: 網站介紹 (預設顯示) -->
-            <section id="about" class="page-section active">
+            <section id="about" class="page-section">
                 <h2>歡迎來到 PandaPanda 的 AI 世界</h2>
                 <p>
                     歡迎來到PandaPanda的AI日常<br>
@@ -491,9 +494,9 @@
 
             function parseCSV(text) {
                 const lines = text.trim().replace(/\r/g, '').split('\n');
-                if (lines.length < 1) return { headers: [], data: [] };
+                if (lines.length === 0) return { headers: [], data: [] };
                 const headers = lines[0].split(',').map(h => h.trim());
-                 if (lines.length < 2) return { headers: headers, data: [] };
+                if (lines.length < 2) return { headers: headers, data: [] };
                 
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
@@ -517,7 +520,6 @@
             // --- 節日倒數計時器邏輯 ---
             function getNextEvent(events) {
                 const now = new Date();
-                
                 const lunarDates = {
                     '2025': { '1-1': '2025-01-29', '5-5': '2025-05-31', '8-15': '2025-10-06' },
                     '2026': { '1-1': '2026-02-17', '5-5': '2026-06-19', '8-15': '2026-09-25' },
@@ -527,16 +529,14 @@
                 const processedEvents = events.map(item => {
                     const dateStr = item['倒數日期'] ? item['倒數日期'].trim() : null;
                     const isLunar = item['是否為農曆'] === '1';
-                    
                     if (!dateStr || !item['節日']) return null;
 
                     let targetDate = null;
-                    
                     if (isLunar) {
                         for (let year = now.getFullYear(); year <= now.getFullYear() + 2; year++) {
                             if (lunarDates[year] && lunarDates[year][dateStr]) {
                                 targetDate = new Date(lunarDates[year][dateStr] + 'T00:00:00');
-                                if (targetDate > now) break; 
+                                if (targetDate > now) break;
                             }
                         }
                     } else {
@@ -551,24 +551,14 @@
                     }
                     
                     if (targetDate) {
-                        return { 
-                            name: item['節日'], 
-                            dateObj: targetDate, 
-                            originalDate: dateStr, 
-                            isLunar: isLunar 
-                        };
+                        return { name: item['節日'], dateObj: targetDate, originalDate: dateStr, isLunar: isLunar };
                     }
                     return null;
-                }).filter(Boolean); // 過濾掉無效的事件
+                }).filter(Boolean);
                 
-                console.log("偵錯：已處理的所有未來事件 (排序前):", processedEvents);
-
                 if (processedEvents.length === 0) return null;
 
                 processedEvents.sort((a, b) => a.dateObj - b.dateObj);
-                
-                console.log("偵錯：最接近的事件 (排序後):", processedEvents[0]);
-                
                 return processedEvents[0];
             }
             
@@ -579,7 +569,6 @@
                 const minutesEl = document.getElementById('countdown-minutes');
                 const secondsEl = document.getElementById('countdown-seconds');
 
-                // 設定顯示名稱
                 const year = event.dateObj.getFullYear();
                 const month = String(event.dateObj.getMonth() + 1).padStart(2, '0');
                 const day = String(event.dateObj.getDate()).padStart(2, '0');
@@ -592,7 +581,6 @@
                     displayName = `距離 ${event.name} 國曆 ${event.originalDate} 還有`;
                 }
                 festivalNameEl.innerHTML = displayName;
-
 
                 function update() {
                     const countdownDate = event.dateObj.getTime();
@@ -647,7 +635,6 @@
                 }
             }
 
-
             // --- 巢狀分類與網站列表邏輯 ---
             function displayError(container, message, suggestion) {
                 console.error(message);
@@ -701,7 +688,7 @@
 
                 if (headers.includes('分類') && headers.includes('gid') && headers.includes('是否有資料夾')) {
                     toolsGrid.innerHTML = '';
-                     const categories = data.filter(item => item['分類'] && item['gid']);
+                    const categories = data.filter(item => item['分類'] && item['gid']);
                     if (categories.length === 0) {
                         parentElement.innerHTML = '<p>這個分類下沒有子分類。</p>';
                         return;
@@ -725,7 +712,6 @@
                         
                         button.addEventListener('click', () => {
                             const isCurrentlyActive = button.classList.contains('active');
-                            
                             button.classList.toggle('open');
 
                             if (hasFolders) {
@@ -734,7 +720,7 @@
                                     renderCategoryLevel(catGid, subContainer);
                                 }
                             } else {
-                                 document.querySelectorAll('#category-container .category-button.active').forEach(b => {
+                                document.querySelectorAll('#category-container .category-button.active').forEach(b => {
                                     if (b !== button) b.classList.remove('active');
                                 });
                                 button.classList.toggle('active', !isCurrentlyActive);
@@ -759,6 +745,27 @@
             // --- 程式進入點 ---
             initializeDynamicCountdown();
 
+            // 頁面導覽
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const pageId = this.dataset.page;
+                    
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    pageSections.forEach(section => {
+                        section.classList.toggle('active', section.id === pageId);
+                    });
+                    
+                    if (pageId === 'tools' && !toolsLoaded) {
+                        renderCategoryLevel('0', document.getElementById('category-container'));
+                        toolsLoaded = true;
+                    }
+                });
+            });
+            
+            // 預設顯示關於本站
             navLinks[0].click();
         });
     </script>
