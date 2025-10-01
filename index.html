@@ -214,7 +214,7 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 30px;
             margin-top: 30px;
         }
@@ -350,26 +350,10 @@
             text-decoration: underline;
         }
 
-        /* --- 響應式設計 --- */
+        /* --- 響應式設計：平板與手機 --- */
         @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            nav {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 10px;
-            }
-
-            nav a {
-                margin-left: 10px;
-            }
-
             .page-section {
-                padding: 25px;
+                padding: 30px;
             }
             #countdown-timer {
                 flex-wrap: wrap;
@@ -381,6 +365,25 @@
             }
             .countdown-number {
                 font-size: 2em;
+            }
+        }
+        
+        @media (max-width: 680px) {
+            header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 15px;
+            }
+            nav a {
+                margin-left: 10px;
+            }
+             .page-section {
+                padding: 25px;
             }
         }
     </style>
@@ -514,50 +517,59 @@
             // --- 節日倒數計時器邏輯 ---
             function getNextEvent(events) {
                 const now = new Date();
-                const futureEvents = [];
-
+                
                 const lunarDates = {
                     '2025': { '1-1': '2025-01-29', '5-5': '2025-05-31', '8-15': '2025-10-06' },
                     '2026': { '1-1': '2026-02-17', '5-5': '2026-06-19', '8-15': '2026-09-25' },
                     '2027': { '1-1': '2027-02-06', '5-5': '2027-06-08', '8-15': '2027-09-15' }
                 };
 
-                events.forEach(item => {
-                    const dateStr = item['倒數日期'];
+                const processedEvents = events.map(item => {
+                    const dateStr = item['倒數日期'] ? item['倒數日期'].trim() : null;
                     const isLunar = item['是否為農曆'] === '1';
                     
-                    if (!dateStr || !item['節日']) return;
+                    if (!dateStr || !item['節日']) return null;
 
                     let targetDate = null;
                     
                     if (isLunar) {
-                        let year = now.getFullYear();
-                        for (let i = 0; i < 3; i++) {
-                            const checkYear = year + i;
-                            if (lunarDates[checkYear] && lunarDates[checkYear][dateStr]) {
-                                targetDate = new Date(lunarDates[checkYear][dateStr] + 'T00:00:00');
-                                if (targetDate > now) break;
+                        for (let year = now.getFullYear(); year <= now.getFullYear() + 2; year++) {
+                            if (lunarDates[year] && lunarDates[year][dateStr]) {
+                                targetDate = new Date(lunarDates[year][dateStr] + 'T00:00:00');
+                                if (targetDate > now) break; 
                             }
                         }
                     } else {
                         const [month, day] = dateStr.split('-');
-                        const currentYear = now.getFullYear();
-                        targetDate = new Date(`${currentYear}-${month}-${day}T00:00:00`);
-                        
-                        if (targetDate < now) {
-                            targetDate.setFullYear(currentYear + 1);
+                        if(month && day){
+                            const currentYear = now.getFullYear();
+                            targetDate = new Date(`${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`);
+                            if (targetDate < now) {
+                                targetDate.setFullYear(currentYear + 1);
+                            }
                         }
                     }
                     
-                    if(targetDate && targetDate > now) {
-                        futureEvents.push({ name: item['節日'], dateObj: targetDate });
+                    if (targetDate) {
+                        return { 
+                            name: item['節日'], 
+                            dateObj: targetDate, 
+                            originalDate: dateStr, 
+                            isLunar: isLunar 
+                        };
                     }
-                });
+                    return null;
+                }).filter(Boolean); // 過濾掉無效的事件
                 
-                if (futureEvents.length === 0) return null;
+                console.log("偵錯：已處理的所有未來事件 (排序前):", processedEvents);
 
-                futureEvents.sort((a, b) => a.dateObj - b.dateObj);
-                return futureEvents[0];
+                if (processedEvents.length === 0) return null;
+
+                processedEvents.sort((a, b) => a.dateObj - b.dateObj);
+                
+                console.log("偵錯：最接近的事件 (排序後):", processedEvents[0]);
+                
+                return processedEvents[0];
             }
             
             function startCountdown(event) {
@@ -566,6 +578,21 @@
                 const hoursEl = document.getElementById('countdown-hours');
                 const minutesEl = document.getElementById('countdown-minutes');
                 const secondsEl = document.getElementById('countdown-seconds');
+
+                // 設定顯示名稱
+                const year = event.dateObj.getFullYear();
+                const month = String(event.dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(event.dateObj.getDate()).padStart(2, '0');
+                const gregorianDateStr = `${year}-${month}-${day}`;
+
+                let displayName = '';
+                if (event.isLunar) {
+                    displayName = `距離 ${event.name} 農曆 ${event.originalDate} (${gregorianDateStr}) 還有`;
+                } else {
+                    displayName = `距離 ${event.name} 國曆 ${event.originalDate} 還有`;
+                }
+                festivalNameEl.innerHTML = displayName;
+
 
                 function update() {
                     const countdownDate = event.dateObj.getTime();
@@ -578,7 +605,6 @@
                         return;
                     }
                     
-                    festivalNameEl.textContent = `距離 ${event.name} 還有`;
                     daysEl.textContent = Math.floor(distance / (1000 * 60 * 60 * 24));
                     hoursEl.textContent = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     minutesEl.textContent = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -608,7 +634,7 @@
                     }
                     
                     const nextEvent = getNextEvent(parsedResult.data);
-
+                    
                     if (nextEvent) {
                         startCountdown(nextEvent);
                     } else {
