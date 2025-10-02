@@ -135,27 +135,44 @@
         #countdown-timer {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .countdown-box {
             background: var(--card-bg-color);
-            padding: 15px 20px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            min-width: 80px;
+            min-width: 70px;
         }
 
         .countdown-number {
-            font-size: 2.5em;
+            font-size: 2.2em;
             font-weight: 700;
             color: var(--secondary-color);
         }
         
         .countdown-label {
-            font-size: 0.9em;
+            font-size: 0.8em;
             color: #666;
+        }
+
+        .show-all-button {
+            margin-top: 25px;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: 600;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .show-all-button:hover {
+            background-color: var(--primary-color);
         }
 
 
@@ -334,6 +351,72 @@
             margin-bottom: 10px;
         }
         
+        /* --- 新增：Modal (彈出視窗) 樣式 --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* 預設隱藏 */
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .modal-content h2 {
+             font-size: 1.8em;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2em;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .close-button:hover {
+            color: #333;
+        }
+
+        #festivals-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+        }
+        #festivals-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+        #festivals-list li:last-child {
+            border-bottom: none;
+        }
+        #festivals-list .time-left {
+            display: block;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+
         /* --- 頁尾 --- */
         footer {
             text-align: center;
@@ -359,7 +442,7 @@
             text-decoration: underline;
         }
 
-        /* --- 響應式設計：平板與手機 --- */
+        /* --- 響應式設計 --- */
         @media (max-width: 880px) {
             header {
                 flex-direction: column;
@@ -372,15 +455,17 @@
                 padding: 30px;
             }
             #countdown-timer {
-                flex-wrap: wrap;
-                gap: 10px;
+                gap: 5px;
             }
             .countdown-box {
-                min-width: 65px;
-                padding: 10px;
+                min-width: 45px;
+                padding: 8px;
             }
             .countdown-number {
-                font-size: 2em;
+                font-size: 1.5em;
+            }
+             .countdown-label {
+                font-size: 0.7em;
             }
         }
         
@@ -424,6 +509,15 @@
                 <div id="countdown-container">
                     <h3 id="festival-name">正在讀取倒數事件...</h3>
                     <div id="countdown-timer">
+                        <!-- 新增：年、月 -->
+                        <div class="countdown-box">
+                            <div id="countdown-years" class="countdown-number">-</div>
+                            <div class="countdown-label">年</div>
+                        </div>
+                        <div class="countdown-box">
+                            <div id="countdown-months" class="countdown-number">-</div>
+                            <div class="countdown-label">月</div>
+                        </div>
                         <div class="countdown-box">
                             <div id="countdown-days" class="countdown-number">-</div>
                             <div class="countdown-label">天</div>
@@ -441,6 +535,7 @@
                             <div class="countdown-label">秒</div>
                         </div>
                     </div>
+                    <button id="show-all-btn" class="show-all-button">查看所有節日</button>
                 </div>
 
             </section>
@@ -466,6 +561,18 @@
             <p>版權所有 &copy; 2025 PandaPanda的AI日常 All Rights Reserved. </p>
         </footer>
     </div>
+    
+    <!-- 所有節日彈出視窗 -->
+    <div id="festivals-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-button">&times;</span>
+            <h2>所有倒數事件</h2>
+            <ul id="festivals-list">
+                <!-- 節日列表將動態插入此處 -->
+            </ul>
+        </div>
+    </div>
+
 
     <!-- JavaScript 程式碼 -->
     <script>
@@ -482,6 +589,14 @@
             const dataCache = {};
             let toolsLoaded = false;
             let countdownInterval;
+            let modalUpdateInterval; // 【新增】Modal 的更新計時器
+            let allSortedFestivals = [];
+
+            const showAllBtn = document.getElementById('show-all-btn');
+            const festivalsModal = document.getElementById('festivals-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const festivalsList = document.getElementById('festivals-list');
+
 
             // --- 通用函式 ---
             function showLoader() {
@@ -518,7 +633,33 @@
             }
 
             // --- 節日倒數計時器邏輯 ---
-            function getNextEvent(events) {
+            function calculateTimeDifference(targetDate) {
+                let end = new Date(targetDate);
+                let start = new Date();
+                
+                if(start > end) return { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+                let years = end.getFullYear() - start.getFullYear();
+                let months = end.getMonth() - start.getMonth();
+                let days = end.getDate() - start.getDate();
+                let hours = end.getHours() - start.getHours();
+                let minutes = end.getMinutes() - start.getMinutes();
+                let seconds = end.getSeconds() - start.getSeconds();
+
+                if (seconds < 0) { seconds += 60; minutes--; }
+                if (minutes < 0) { minutes += 60; hours--; }
+                if (hours < 0) { hours += 24; days--; }
+                if (days < 0) {
+                    const daysInLastMonth = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+                    days += daysInLastMonth;
+                    months--;
+                }
+                if (months < 0) { months += 12; years--; }
+
+                return { years, months, days, hours, minutes, seconds };
+            }
+            
+            function processAndSortAllEvents(events) {
                 const now = new Date();
                 const lunarDates = {
                     '2025': { '1-1': '2025-01-29', '5-5': '2025-05-31', '8-15': '2025-10-06' },
@@ -556,14 +697,14 @@
                     return null;
                 }).filter(Boolean);
                 
-                if (processedEvents.length === 0) return null;
-
                 processedEvents.sort((a, b) => a.dateObj - b.dateObj);
-                return processedEvents[0];
+                return processedEvents;
             }
             
             function startCountdown(event) {
                 const festivalNameEl = document.getElementById('festival-name');
+                const yearsEl = document.getElementById('countdown-years');
+                const monthsEl = document.getElementById('countdown-months');
                 const daysEl = document.getElementById('countdown-days');
                 const hoursEl = document.getElementById('countdown-hours');
                 const minutesEl = document.getElementById('countdown-minutes');
@@ -583,20 +724,19 @@
                 festivalNameEl.innerHTML = displayName;
 
                 function update() {
-                    const countdownDate = event.dateObj.getTime();
-                    const now = new Date().getTime();
-                    const distance = countdownDate - now;
-
-                    if (distance < 0) {
+                    const diff = calculateTimeDifference(event.dateObj);
+                    if (diff.years < 0) {
                         clearInterval(countdownInterval);
                         initializeDynamicCountdown();
                         return;
                     }
                     
-                    daysEl.textContent = Math.floor(distance / (1000 * 60 * 60 * 24));
-                    hoursEl.textContent = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    minutesEl.textContent = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    secondsEl.textContent = Math.floor((distance % (1000 * 60)) / 1000);
+                    yearsEl.textContent = diff.years;
+                    monthsEl.textContent = diff.months;
+                    daysEl.textContent = diff.days;
+                    hoursEl.textContent = diff.hours;
+                    minutesEl.textContent = diff.minutes;
+                    secondsEl.textContent = diff.seconds;
                 }
 
                 if (countdownInterval) clearInterval(countdownInterval);
@@ -621,10 +761,10 @@
                         throw new Error(`偵測到的格式為「${detected}」，但預期格式為「${expected}」。`);
                     }
                     
-                    const nextEvent = getNextEvent(parsedResult.data);
+                    allSortedFestivals = processAndSortAllEvents(parsedResult.data);
                     
-                    if (nextEvent) {
-                        startCountdown(nextEvent);
+                    if (allSortedFestivals.length > 0) {
+                        startCountdown(allSortedFestivals[0]);
                     } else {
                         festivalNameEl.textContent = '目前沒有設定倒數事件';
                     }
@@ -634,6 +774,57 @@
                     festivalNameEl.innerHTML = `讀取節日失敗<br><small style="font-weight: normal; font-size: 0.8em; color: var(--error-color);">${error.message}</small>`;
                 }
             }
+            
+            // --- Modal (彈出視窗) 邏輯 ---
+            function populateFestivalsList() {
+                festivalsList.innerHTML = '';
+                if(allSortedFestivals.length === 0){
+                    festivalsList.innerHTML = '<li>沒有找到任何節日資料。</li>';
+                    return;
+                }
+                
+                allSortedFestivals.forEach(event => {
+                    const li = document.createElement('li');
+                    
+                    const year = event.dateObj.getFullYear();
+                    const month = String(event.dateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(event.dateObj.getDate()).padStart(2, '0');
+                    const gregorianDateStr = `${year}-${month}-${day}`;
+                    
+                    let titleHtml = '';
+                    if (event.isLunar) {
+                        titleHtml = `<strong>${event.name}</strong> 農曆 ${event.originalDate} (國曆 ${gregorianDateStr})`;
+                    } else {
+                        titleHtml = `<strong>${event.name}</strong> 國曆 ${event.originalDate}`;
+                    }
+                    
+                    const diff = calculateTimeDifference(event.dateObj);
+                    const timeLeftHtml = `<span class="time-left">剩下: ${diff.years}年 ${diff.months}月 ${diff.days}天 ${diff.hours}時 ${diff.minutes}分 ${diff.seconds}秒</span>`;
+                    
+                    li.innerHTML = titleHtml + timeLeftHtml;
+                    festivalsList.appendChild(li);
+                });
+            }
+
+            showAllBtn.addEventListener('click', () => {
+                populateFestivalsList();
+                clearInterval(modalUpdateInterval); // 清除舊的計時器
+                modalUpdateInterval = setInterval(populateFestivalsList, 1000); // 【新增】設定每秒刷新
+                festivalsModal.style.display = 'flex';
+            });
+            
+            function closeModal() {
+                festivalsModal.style.display = 'none';
+                clearInterval(modalUpdateInterval); // 【新增】關閉時清除計時器
+            }
+
+            closeModalBtn.addEventListener('click', closeModal);
+            festivalsModal.addEventListener('click', (e) => {
+                if(e.target === festivalsModal) {
+                    closeModal();
+                }
+            });
+
 
             // --- 巢狀分類與網站列表邏輯 ---
             function displayError(container, message, suggestion) {
@@ -745,7 +936,6 @@
             // --- 程式進入點 ---
             initializeDynamicCountdown();
 
-            // 頁面導覽
             navLinks.forEach(link => {
                 link.addEventListener('click', function(event) {
                     event.preventDefault();
@@ -765,7 +955,6 @@
                 });
             });
             
-            // 預設顯示關於本站
             navLinks[0].click();
         });
     </script>
