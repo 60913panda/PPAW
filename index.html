@@ -114,65 +114,20 @@
             padding-bottom: 10px;
         }
         
-        /* --- 節日倒數計時器樣式 --- */
+        /* --- 嵌入計時器樣式 --- */
         #countdown-container {
-            text-align: center;
-            padding: 30px 20px;
             margin-top: 30px;
             background-color: #f8fbf6;
             border-radius: 15px;
             border: 2px solid var(--border-color);
-        }
-
-        #festival-name {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin: 0;
-            line-height: 1.4;
-        }
-        
-        #countdown-timer {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .countdown-box {
-            background: var(--card-bg-color);
             padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            min-width: 70px;
-        }
-
-        .countdown-number {
-            font-size: 2.2em;
-            font-weight: 700;
-            color: var(--secondary-color);
+            overflow: hidden; /* 確保 iframe 圓角生效 */
         }
         
-        .countdown-label {
-            font-size: 0.8em;
-            color: #666;
-        }
-
-        .show-all-button {
-            margin-top: 25px;
-            padding: 10px 20px;
-            font-size: 1em;
-            font-weight: 600;
-            background-color: var(--secondary-color);
-            color: white;
+        #timer-iframe {
+            width: 100%;
+            height: 500px; /* 調整為適合的高度 */
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .show-all-button:hover {
-            background-color: var(--primary-color);
         }
 
 
@@ -351,72 +306,6 @@
             margin-bottom: 10px;
         }
         
-        /* --- 新增：Modal (彈出視窗) 樣式 --- */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: none; /* 預設隱藏 */
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        .modal-content h2 {
-             font-size: 1.8em;
-            color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 20px;
-        }
-
-        .close-button {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 2em;
-            color: #aaa;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-        .close-button:hover {
-            color: #333;
-        }
-
-        #festivals-list {
-            list-style-type: none;
-            padding: 0;
-            text-align: left;
-        }
-        #festivals-list li {
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 1.1em;
-            line-height: 1.5;
-        }
-        #festivals-list li:last-child {
-            border-bottom: none;
-        }
-        #festivals-list .time-left {
-            display: block;
-            font-size: 0.9em;
-            color: #555;
-        }
-
-
         /* --- 頁尾 --- */
         footer {
             text-align: center;
@@ -454,19 +343,6 @@
             .page-section {
                 padding: 30px;
             }
-            #countdown-timer {
-                gap: 5px;
-            }
-            .countdown-box {
-                min-width: 45px;
-                padding: 8px;
-            }
-            .countdown-number {
-                font-size: 1.5em;
-            }
-             .countdown-label {
-                font-size: 0.7em;
-            }
         }
         
         @media (max-width: 480px) {
@@ -499,42 +375,15 @@
         <main>
             <!-- 區塊1: 網站介紹 (預設顯示) -->
             <section id="about" class="page-section">
-                <h2>歡迎來到 PandaPanda 的 AI 日常</h2>
+                <h2>歡迎來到 PandaPanda 的 AI 世界</h2>
                 <p>
                     歡迎來到PandaPanda的AI日常<br>
                     這裡有用AI做的網站和還有各種小工具<br>
                 </p>
 
-                <!-- 節日倒數計時器 -->
+                <!-- 嵌入計時器 -->
                 <div id="countdown-container">
-                    <h3 id="festival-name">正在讀取倒數事件...</h3>
-                    <div id="countdown-timer">
-                        <div class="countdown-box">
-                            <div id="countdown-years" class="countdown-number">-</div>
-                            <div class="countdown-label">年</div>
-                        </div>
-                        <div class="countdown-box">
-                            <div id="countdown-months" class="countdown-number">-</div>
-                            <div class="countdown-label">月</div>
-                        </div>
-                        <div class="countdown-box">
-                            <div id="countdown-days" class="countdown-number">-</div>
-                            <div class="countdown-label">天</div>
-                        </div>
-                        <div class="countdown-box">
-                            <div id="countdown-hours" class="countdown-number">-</div>
-                            <div class="countdown-label">時</div>
-                        </div>
-                        <div class="countdown-box">
-                            <div id="countdown-minutes" class="countdown-number">-</div>
-                            <div class="countdown-label">分</div>
-                        </div>
-                        <div class="countdown-box">
-                            <div id="countdown-seconds" class="countdown-number">-</div>
-                            <div class="countdown-label">秒</div>
-                        </div>
-                    </div>
-                    <button id="show-all-btn" class="show-all-button">查看所有節日</button>
+                    <iframe id="timer-iframe" src="./festival_timer.html"></iframe>
                 </div>
 
             </section>
@@ -561,42 +410,48 @@
         </footer>
     </div>
     
-    <!-- 所有節日彈出視窗 -->
-    <div id="festivals-modal" class="modal-overlay">
-        <div class="modal-content">
-            <span id="close-modal-btn" class="close-button">&times;</span>
-            <h2>所有倒數事件</h2>
-            <ul id="festivals-list">
-                <!-- 節日列表將動態插入此處 -->
-            </ul>
-        </div>
-    </div>
-
-
     <!-- JavaScript 程式碼 -->
     <script>
+        // --- 安全功能 ---
+        const warningMessage = '住手！這是一個專為開發人員設計的瀏覽器功能。如果有人告訴您在這裡複製貼上任何東西來啟用特殊功能或「駭入」他人帳號，這很可能是一場騙局，並且會讓攻擊者有機會竊取您的個人資訊或控制您的帳號。';
+
+        // 禁用開發者工具的常用快捷鍵並顯示彈出視窗
+        document.addEventListener('keydown', function(event) {
+            // 禁用 F12
+            if (event.keyCode === 123) {
+                event.preventDefault();
+                alert(warningMessage);
+            }
+            // 禁用 Ctrl+Shift+I (Windows/Linux)
+            if (event.ctrlKey && event.shiftKey && event.keyCode === 73) {
+                event.preventDefault();
+                alert(warningMessage);
+            }
+            // 禁用 Command+Option+I (Mac)
+            if (event.metaKey && event.altKey && event.keyCode === 73) {
+                event.preventDefault();
+                alert(warningMessage);
+            }
+        });
+
+        // 禁用右鍵選單
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
+
+
         document.addEventListener('DOMContentLoaded', function() {
             // --- 全域設定 ---
             const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
             const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
-            const festivalSheetGid = '739572691';
-
+            
             const navLinks = document.querySelectorAll('nav a.nav-link');
             const pageSections = document.querySelectorAll('.page-section');
             const toolsGrid = document.getElementById('tools-grid');
             const loadingOverlay = document.getElementById('loading-overlay');
             const dataCache = {};
             let toolsLoaded = false;
-            let countdownInterval;
-            let modalUpdateInterval;
-            let allSortedFestivals = [];
-
-            const showAllBtn = document.getElementById('show-all-btn');
-            const festivalsModal = document.getElementById('festivals-modal');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const festivalsList = document.getElementById('festivals-list');
-
-
+            
             // --- 通用函式 ---
             function showLoader() {
                 loadingOverlay.style.display = 'flex';
@@ -630,249 +485,6 @@
                 }
                 return { headers, data };
             }
-
-            // --- 節日倒數計時器邏輯 (全新引擎) ---
-            function calculateTimeDifference(targetDate) {
-                let end = new Date(targetDate);
-                let start = new Date();
-                
-                if(start >= end) return { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, isOver: true };
-
-                let years = end.getFullYear() - start.getFullYear();
-                let months = end.getMonth() - start.getMonth();
-                let days = end.getDate() - start.getDate();
-                let hours = end.getHours() - start.getHours();
-                let minutes = end.getMinutes() - start.getMinutes();
-                let seconds = end.getSeconds() - start.getSeconds();
-
-                if (seconds < 0) { seconds += 60; minutes--; }
-                if (minutes < 0) { minutes += 60; hours--; }
-                if (hours < 0) { hours += 24; days--; }
-                if (days < 0) {
-                    const daysInLastMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-                    days += daysInLastMonth;
-                    months--;
-                }
-                if (months < 0) { months += 12; years--; }
-
-                return { years, months, days, hours, minutes, seconds, isOver: false };
-            }
-            
-            function calculateNthDayOfMonth(year, month, dayOfWeek, weekNumber) {
-                let count = 0;
-                for (let day = 1; day <= 31; day++) {
-                    const currentDate = new Date(year, month - 1, day);
-                    if (currentDate.getMonth() !== month - 1) break; 
-                    
-                    let currentDayOfWeek = currentDate.getDay();
-                    if (currentDayOfWeek === 0) currentDayOfWeek = 7; // 將星期日轉為 7
-
-                    if (currentDayOfWeek === dayOfWeek) {
-                        count++;
-                        if (count === weekNumber) {
-                            return currentDate;
-                        }
-                    }
-                }
-                return null;
-            }
-
-            function processAndSortAllEvents(events) {
-                const now = new Date();
-                // 【關鍵升級】更完整的農曆資料庫
-                const lunarInfo = {
-                    '2024': { '1-1': '2024-02-10', '5-5': '2024-06-10', '8-15': '2024-09-17', 'eve': '2024-02-09' },
-                    '2025': { '1-1': '2025-01-29', '5-5': '2025-05-31', '8-15': '2025-10-06', 'eve': '2025-01-28' },
-                    '2026': { '1-1': '2026-02-17', '5-5': '2026-06-19', '8-15': '2026-09-25', 'eve': '2026-02-16' },
-                    '2027': { '1-1': '2027-02-06', '5-5': '2027-06-08', '8-15': '2027-09-15', 'eve': '2027-02-05' },
-                    '2028': { '1-1': '2028-01-26', '5-5': '2028-05-28', '8-15': '2028-09-03', 'eve': '2028-01-25' }
-                };
-
-
-                const processedEvents = events.map(item => {
-                    const originalDateStr = item['倒數日期'] ? item['倒數日期'].trim() : null;
-                    const isLunar = item['是否為農曆'] === '1';
-                    if (!originalDateStr || !item['節日']) return null;
-
-                    let targetDate = null;
-                    let dateToProcess = originalDateStr;
-                    
-                    if (dateToProcess.includes('或')) {
-                        const [dateA, dateB] = dateToProcess.split('或').map(d => d.trim());
-                        let targetYear = now.getFullYear();
-                        
-                        // 使用 "或" 後面的日期來判斷今年是否已過
-                        const [monthB, dayB] = dateB.split('-');
-                        const checkDate = new Date(`${targetYear}-${monthB.padStart(2, '0')}-${dayB.padStart(2, '0')}T00:00:00`);
-
-                        if (checkDate < now) {
-                            targetYear++; // 目標設為明年
-                        }
-                        
-                        const isTargetYearLeap = (targetYear % 4 === 0);
-                        dateToProcess = isTargetYearLeap ? dateB : dateA;
-                    }
-
-                    const ruleMatch = dateToProcess.match(/^(\d{1,2})-(\d)-(\d)$/);
-                    if (ruleMatch && !isLunar) {
-                        const [, month, week, day] = ruleMatch.map(Number);
-                        targetDate = calculateNthDayOfMonth(now.getFullYear(), month, day, week);
-                        if (targetDate && targetDate < now) {
-                            targetDate = calculateNthDayOfMonth(now.getFullYear() + 1, month, day, week);
-                        }
-                    } else if (isLunar) {
-                        const key = (dateToProcess.includes('12-29') || dateToProcess.includes('12-30')) ? 'eve' : dateToProcess;
-                        for (let year = now.getFullYear(); year <= now.getFullYear() + 3; year++) {
-                            if (lunarInfo[year] && lunarInfo[year][key]) {
-                                targetDate = new Date(lunarInfo[year][key] + 'T00:00:00');
-                                if (targetDate > now) break;
-                            }
-                        }
-                    } else {
-                        const [month, day] = dateToProcess.split('-');
-                        if(month && day){
-                            let targetYear = now.getFullYear();
-                            targetDate = new Date(`${targetYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`);
-                            if (targetDate < now) {
-                                targetDate.setFullYear(targetYear + 1);
-                            }
-                        }
-                    }
-                    
-                    if (targetDate) {
-                        return { name: item['節日'], dateObj: targetDate, originalDate: originalDateStr, isLunar: isLunar };
-                    }
-                    return null;
-                }).filter(Boolean);
-                
-                processedEvents.sort((a, b) => a.dateObj - b.dateObj);
-                return processedEvents;
-            }
-            
-            function startCountdown(event) {
-                const festivalNameEl = document.getElementById('festival-name');
-                const yearsEl = document.getElementById('countdown-years');
-                const monthsEl = document.getElementById('countdown-months');
-                const daysEl = document.getElementById('countdown-days');
-                const hoursEl = document.getElementById('countdown-hours');
-                const minutesEl = document.getElementById('countdown-minutes');
-                const secondsEl = document.getElementById('countdown-seconds');
-
-                const year = event.dateObj.getFullYear();
-                const month = String(event.dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(event.dateObj.getDate()).padStart(2, '0');
-                const gregorianDateStr = `${year}/${month}/${day}`;
-
-                let displayName = '';
-                if (event.isLunar) {
-                    displayName = `距離 ${event.name} 農曆 ${event.originalDate} (${gregorianDateStr}) 還有`;
-                } else {
-                     displayName = `距離 ${event.name} (${gregorianDateStr}) 還有`;
-                }
-                festivalNameEl.innerHTML = displayName;
-
-                function update() {
-                    const diff = calculateTimeDifference(event.dateObj);
-                    if (diff.isOver) {
-                        clearInterval(countdownInterval);
-                        initializeDynamicCountdown();
-                        return;
-                    }
-                    
-                    yearsEl.textContent = diff.years;
-                    monthsEl.textContent = diff.months;
-                    daysEl.textContent = diff.days;
-                    hoursEl.textContent = diff.hours;
-                    minutesEl.textContent = diff.minutes;
-                    secondsEl.textContent = diff.seconds;
-                }
-
-                if (countdownInterval) clearInterval(countdownInterval);
-                update();
-                countdownInterval = setInterval(update, 1000);
-            }
-
-            async function initializeDynamicCountdown() {
-                const festivalNameEl = document.getElementById('festival-name');
-                try {
-                    const response = await fetch(`${baseCsvUrl}&gid=${festivalSheetGid}`);
-                    if (!response.ok) throw new Error(`無法載入節日工作表 (GID: ${festivalSheetGid})。`);
-                    const csvText = await response.text();
-                    const parsedResult = parseCSV(csvText);
-                    
-                    const requiredHeaders = ['節日', '倒數日期', '是否為農曆'];
-                    const hasAllHeaders = requiredHeaders.every(header => parsedResult.headers.includes(header));
-
-                    if (!hasAllHeaders) {
-                        const detected = parsedResult.headers.join(', ') || '無';
-                        const expected = requiredHeaders.join(', ');
-                        throw new Error(`偵測到的格式為「${detected}」，但預期格式為「${expected}」。`);
-                    }
-                    
-                    allSortedFestivals = processAndSortAllEvents(parsedResult.data);
-                    
-                    if (allSortedFestivals.length > 0) {
-                        startCountdown(allSortedFestivals[0]);
-                    } else {
-                        festivalNameEl.textContent = '目前沒有設定倒數事件';
-                    }
-
-                } catch (error) {
-                    console.error("讀取倒數事件失敗:", error);
-                    festivalNameEl.innerHTML = `讀取節日失敗<br><small style="font-weight: normal; font-size: 0.8em; color: var(--error-color);">${error.message}</small>`;
-                }
-            }
-            
-            // --- Modal (彈出視窗) 邏輯 ---
-            function populateFestivalsList() {
-                festivalsList.innerHTML = '';
-                if(allSortedFestivals.length === 0){
-                    festivalsList.innerHTML = '<li>沒有找到任何節日資料。</li>';
-                    return;
-                }
-                
-                allSortedFestivals.forEach(event => {
-                    const li = document.createElement('li');
-                    
-                    const year = event.dateObj.getFullYear();
-                    const month = String(event.dateObj.getMonth() + 1).padStart(2, '0');
-                    const day = String(event.dateObj.getDate()).padStart(2, '0');
-                    const gregorianDateStr = `${year}/${month}/${day}`;
-                    
-                    let titleHtml = '';
-                    if (event.isLunar) {
-                        titleHtml = `<strong>${event.name}</strong> 農曆 ${event.originalDate} (國曆 ${gregorianDateStr})`;
-                    } else {
-                        titleHtml = `<strong>${event.name}</strong> (${gregorianDateStr})`;
-                    }
-                    
-                    const diff = calculateTimeDifference(event.dateObj);
-                    const timeLeftHtml = `<span class="time-left">剩下: ${diff.years}年 ${diff.months}月 ${diff.days}天 ${diff.hours}時 ${diff.minutes}分 ${diff.seconds}秒</span>`;
-                    
-                    li.innerHTML = titleHtml + timeLeftHtml;
-                    festivalsList.appendChild(li);
-                });
-            }
-
-            showAllBtn.addEventListener('click', () => {
-                populateFestivalsList();
-                clearInterval(modalUpdateInterval);
-                modalUpdateInterval = setInterval(populateFestivalsList, 1000);
-                festivalsModal.style.display = 'flex';
-            });
-            
-            function closeModal() {
-                festivalsModal.style.display = 'none';
-                clearInterval(modalUpdateInterval);
-            }
-
-            closeModalBtn.addEventListener('click', closeModal);
-            festivalsModal.addEventListener('click', (e) => {
-                if(e.target === festivalsModal) {
-                    closeModal();
-                }
-            });
-
 
             // --- 巢狀分類與網站列表邏輯 ---
             function displayError(container, message, suggestion) {
@@ -982,8 +594,6 @@
             }
             
             // --- 程式進入點 ---
-            initializeDynamicCountdown();
-
             navLinks.forEach(link => {
                 link.addEventListener('click', function(event) {
                     event.preventDefault();
@@ -1006,6 +616,10 @@
             navLinks[0].click();
         });
     </script>
+
+    <!-- 【新增】重新嵌入隱藏的警告頁面 -->
+    <iframe src="./warning.html" style="display: none;" title="安全警告"></iframe>
 </body>
 </html>
+
 
