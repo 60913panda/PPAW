@@ -412,41 +412,6 @@
     
     <!-- JavaScript 程式碼 -->
     <script>
-        // --- 【新增】全新、更穩定的安全機制 ---
-        (function() {
-            const threshold = 160;
-            let devToolsOpen = false;
-
-            function checkDevTools() {
-                const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-                const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-
-                if (widthThreshold || heightThreshold) {
-                    devToolsOpen = true;
-                }
-                
-                if (devToolsOpen) {
-                    // 偵測到開啟後，立即重新導向
-                    window.location.href = 'https://github.com/';
-                }
-            }
-            
-            setInterval(checkDevTools, 1000); // 每秒檢查一次
-
-            // 禁用快捷鍵
-            document.addEventListener('keydown', function(event) {
-                if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
-                    event.preventDefault();
-                    // 觸發重新導向
-                    window.location.href = 'https://github.com/';
-                }
-            });
-
-            // 禁用右鍵選單
-            document.addEventListener('contextmenu', event => event.preventDefault());
-        })();
-
-
         document.addEventListener('DOMContentLoaded', function() {
             // --- 全域設定 ---
             const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
