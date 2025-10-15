@@ -363,7 +363,7 @@
             opacity: 0.8;
         }
         
-        /* 【新增】終極警告畫面 */
+        /* --- 終極警告畫面 --- */
         #final-warning-overlay {
             position: fixed;
             top: 0;
@@ -515,6 +515,16 @@
             const now = Date.now();
 
             if (now < lockoutEndTime) {
+                // 【關鍵升級】在鎖定期間禁用開發者工具和右鍵，且不跳出警告
+                document.addEventListener('keydown', function(event) {
+                    if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
+                        event.preventDefault();
+                    }
+                });
+                document.addEventListener('contextmenu', function(event) {
+                    event.preventDefault();
+                });
+
                 // 阻止頁面正常渲染並顯示鎖定畫面
                 document.documentElement.innerHTML = `
                     <head>
