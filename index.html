@@ -306,6 +306,85 @@
             margin-bottom: 10px;
         }
         
+        /* --- 安全警告 Modal --- */
+        .security-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            backdrop-filter: blur(5px);
+        }
+
+        .security-modal-content {
+            background-color: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .security-modal-content h2 {
+            color: #d9534f;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+
+        .security-modal-content p {
+            line-height: 1.8;
+            margin-bottom: 25px;
+        }
+
+        .security-modal-close-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .security-modal-close-btn:hover {
+            background-color: #1e4222;
+        }
+        .security-modal-close-btn:disabled {
+            background-color: #9ca3af; /* gray-400 */
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        /* --- 終極警告畫面 --- */
+        #final-warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #a91e22;
+            color: white;
+            display: none; /* 預設隱藏 */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        
         /* --- 頁尾 --- */
         footer {
             text-align: center;
@@ -360,6 +439,21 @@
         <p>載入中...</p>
     </div>
     
+    <!-- 安全警告彈出視窗 -->
+    <div id="security-modal" class="security-modal-overlay">
+        <div class="security-modal-content">
+            <h2>住手！</h2>
+            <p>這是一個專為開發人員設計的瀏覽器功能。如果有人告訴您在這裡複製貼上任何東西來啟用特殊功能或「駭入」他人帳號，這很可能是一場騙局，並且會讓攻擊者有機會竊取您的個人資訊或控制您的帳號。</p>
+            <button id="close-security-modal" class="security-modal-close-btn">我瞭解了</button>
+        </div>
+    </div>
+    
+    <!-- 終極警告畫面 -->
+    <div id="final-warning-overlay">
+        <p>偵測到不當操作，頁面已被鎖定。</p>
+    </div>
+
+
     <div class="container">
         <!-- 頁首：網站標題和主選單 -->
         <header>
@@ -412,32 +506,86 @@
     
     <!-- JavaScript 程式碼 -->
     <script>
-        // --- 【新增】全新安全機制：重新導向 ---
+        // --- 【新增】終極安全防護機制 ---
         (function() {
-            const devtools = /./;
-            devtools.toString = function() {
-                this.opened = true;
-            };
-
-            function check() {
-                devtools.opened = false;
+            // 第二層防護：開發者工具陷阱 (重新導向)
+            function detectDevTools() {
+                const devtools = /./;
+                devtools.toString = function() {
+                    this.opened = true;
+                };
                 console.log('%c', devtools);
-                if (devtools.opened) {
-                    window.location.href = 'https://github.com/';
-                }
+                return devtools.opened;
             }
 
-            setInterval(check, 1000); // 每秒檢查一次
+            setInterval(function() {
+                if (detectDevTools()) {
+                    window.location.href = 'https://github.com/';
+                }
+            }, 1000);
 
-            document.addEventListener('contextmenu', event => event.preventDefault());
+            // 第一層防護：快捷鍵攔截與警告
+            const securityModal = document.getElementById('security-modal');
+            const closeSecurityModalBtn = document.getElementById('close-security-modal');
+            const finalWarningOverlay = document.getElementById('final-warning-overlay');
+            let countdownTimer;
+            let warningCount = 0;
+            let lastWarningTime = 0;
 
+            function showSecurityWarning() {
+                const now = Date.now();
+                if (now - lastWarningTime < 5000) {
+                    warningCount++;
+                } else {
+                    warningCount = 1;
+                }
+                lastWarningTime = now;
+
+                if (warningCount >= 3) {
+                    finalWarningOverlay.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    return;
+                }
+
+                if (securityModal.style.display === 'flex') return;
+
+                securityModal.style.display = 'flex';
+                closeSecurityModalBtn.disabled = true;
+                
+                let countdown = 3;
+                closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
+
+                clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(countdownTimer);
+                        closeSecurityModalBtn.disabled = false;
+                        closeSecurityModalBtn.textContent = '我瞭解了';
+                    } else {
+                        closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
+                    }
+                }, 1000);
+            }
+
+            function hideSecurityWarning() {
+                securityModal.style.display = 'none';
+                clearInterval(countdownTimer);
+            }
+
+            closeSecurityModalBtn.addEventListener('click', hideSecurityWarning);
+            
             document.addEventListener('keydown', function(event) {
                 if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
                     event.preventDefault();
-                    window.location.href = 'https://github.com/';
+                    showSecurityWarning();
                 }
             });
+            document.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+            });
         })();
+
 
         document.addEventListener('DOMContentLoaded', function() {
             // --- 全域設定 ---
@@ -615,7 +763,6 @@
             navLinks[0].click();
         });
     </script>
-
 </body>
 </html>
 
