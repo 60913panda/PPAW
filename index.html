@@ -545,15 +545,18 @@
             let lastWarningTime = 0;
 
             // 第三層防護：開發者工具陷阱 (重新導向 + 鎖定)
-            setInterval(function() {
-                const devtools = /./;
-                devtools.toString = function() { this.opened = true; };
-                console.log('%c', devtools);
-                if (devtools.opened) {
-                    localStorage.setItem('lockoutUntil', Date.now() + 60000); // 設定 60 秒鎖定
-                    window.location.href = 'https://github.com/'; // 立即重新導向
-                }
-            }, 1000);
+            (function() {
+                const initialWidth = window.innerWidth;
+                const initialHeight = window.innerHeight;
+                const threshold = 150;
+
+                setInterval(() => {
+                    if (window.innerWidth < initialWidth - threshold || window.innerHeight < initialHeight - threshold) {
+                        localStorage.setItem('lockoutUntil', Date.now() + 60000); 
+                        window.location.href = 'https://github.com/';
+                    }
+                }, 500);
+            })();
 
             function showSecurityWarning() {
                 const now = Date.now();
