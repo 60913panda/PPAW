@@ -514,6 +514,7 @@
             if (!lockoutUntil || isNaN(lockoutUntil)) {
                 localStorage.removeItem('lockoutUntil');
                 localStorage.removeItem('ultimateWarningCount');
+                runApp(); // 繼續執行主程式
                 return;
             }
 
@@ -533,250 +534,254 @@
                         window.location.reload();
                     }
                 }, 1000);
-                throw new Error("Page is locked.");
+                // 直接 return，不再拋出錯誤
+                return; 
             } else {
                 localStorage.removeItem('lockoutUntil');
                 localStorage.removeItem('ultimateWarningCount');
+                runApp(); // 繼續執行主程式
             }
         })();
 
-        // --- 主程式碼 ---
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- 安全功能 ---
-            const securityModal = document.getElementById('security-modal');
-            const closeSecurityModalBtn = document.getElementById('close-security-modal');
-            const finalWarningOverlay = document.getElementById('final-warning-overlay');
-            let countdownTimer;
-            let warningCount = 0;
-            let lastWarningTime = 0;
+        // --- 將主程式碼包裹在一個函式中 ---
+        function runApp() {
+            document.addEventListener('DOMContentLoaded', function() {
+                // --- 安全功能 ---
+                const securityModal = document.getElementById('security-modal');
+                const closeSecurityModalBtn = document.getElementById('close-security-modal');
+                const finalWarningOverlay = document.getElementById('final-warning-overlay');
+                let countdownTimer;
+                let warningCount = 0;
+                let lastWarningTime = 0;
 
-            setInterval(function() {
-                const devtools = /./;
-                devtools.toString = function() { this.opened = true; };
-                console.log('%c', 'color:transparent', devtools);
-                if (devtools.opened) {
-                    localStorage.setItem('lockoutUntil', Date.now() + 60000);
-                    window.location.href = 'https://github.com/';
-                }
-            }, 1000);
-
-            function showSecurityWarning() {
-                const now = Date.now();
-                if (now - lastWarningTime < 5000) {
-                    warningCount++;
-                } else {
-                    warningCount = 1;
-                }
-                lastWarningTime = now;
-
-                if (warningCount >= 3) {
-                    finalWarningOverlay.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                    let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
-                    localStorage.setItem('ultimateWarningCount', ultimateCount);
-
-                    if (ultimateCount >= 3) {
-                        localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
-                        localStorage.removeItem('ultimateWarningCount');
-                    } else {
-                        localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
-                    }
-                    finalWarningOverlay.innerHTML = '<p>偵測到過多不當操作，頁面將在 3 秒後重新載入。</p>';
-                    setTimeout(() => window.location.reload(), 3000);
-                    return;
-                }
-
-                if (securityModal.style.display === 'flex') return;
-                securityModal.style.display = 'flex';
-                closeSecurityModalBtn.disabled = true;
-                let countdown = 3;
-                closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
-                clearInterval(countdownTimer);
-                countdownTimer = setInterval(() => {
-                    countdown--;
-                    if (countdown <= 0) {
-                        clearInterval(countdownTimer);
-                        closeSecurityModalBtn.disabled = false;
-                        closeSecurityModalBtn.textContent = '我瞭解了';
-                    } else {
-                        closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
+                setInterval(function() {
+                    const devtools = /./;
+                    devtools.toString = function() { this.opened = true; };
+                    console.log('%c', 'color:transparent', devtools);
+                    if (devtools.opened) {
+                        localStorage.setItem('lockoutUntil', Date.now() + 60000);
+                        window.location.href = 'https://github.com/';
                     }
                 }, 1000);
-            }
 
-            function hideSecurityWarning() {
-                securityModal.style.display = 'none';
-                clearInterval(countdownTimer);
-            }
-
-            closeSecurityModalBtn.addEventListener('click', hideSecurityWarning);
-            
-            document.addEventListener('keydown', function(event) {
-                if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
-                    event.preventDefault();
-                    showSecurityWarning();
-                }
-            });
-            document.addEventListener('contextmenu', event => event.preventDefault());
-
-            // --- 網站主要功能 ---
-            const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
-            const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
-            const navLinks = document.querySelectorAll('nav a.nav-link');
-            const pageSections = document.querySelectorAll('.page-section');
-            const toolsGrid = document.getElementById('tools-grid');
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const dataCache = {};
-            let toolsLoaded = false;
-            
-            function showLoader() { loadingOverlay.style.display = 'flex'; }
-            function hideLoader() { loadingOverlay.style.display = 'none'; }
-
-            function parseCSV(text) {
-                const lines = text.trim().split('\n');
-                if (lines.length === 0) return { headers: [], data: [] };
-                const headers = lines[0].split(',').map(h => h.trim());
-                if (lines.length < 2) return { headers: headers, data: [] };
-                
-                const data = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i].trim();
-                    if (row === '') continue;
-                    const values = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        if (values[index]) {
-                            let value = values[index].trim();
-                            if (value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1).replace(/""/g, '"');
-                            obj[header] = value;
-                        } else {
-                            obj[header] = '';
-                        }
-                    });
-                    data.push(obj);
-                }
-                return { headers, data };
-            }
-
-            function displayError(container, message, suggestion) {
-                console.error(message);
-                container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p></div>`;
-            }
-
-            function renderTools(tools) {
-                toolsGrid.innerHTML = '';
-                if (!tools || tools.length === 0) {
-                    toolsGrid.innerHTML = '<p>這個分類下沒有找到任何網站。</p>';
-                    return;
-                }
-                tools.forEach(tool => {
-                    const name = tool['名稱'] || '無標題';
-                    const description = tool['說明'] || '無描述';
-                    const link = tool['連結'] || '#';
-                    const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No Image';
-                    const card = document.createElement('div');
-                    card.className = 'tool-card';
-                    card.innerHTML = `<img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';"><div class="tool-card-content"><h3>${name}</h3><p>${description}</p><a href="${link}" class="tool-link" target="_blank" rel="noopener noreferrer">前往使用</a></div>`;
-                    toolsGrid.appendChild(card);
-                });
-            }
-
-            async function renderCategoryLevel(gid, parentElement) {
-                parentElement.innerHTML = '';
-                showLoader();
-                try {
-                    if (dataCache[gid]) {
-                        processData(dataCache[gid], parentElement);
+                function showSecurityWarning() {
+                    const now = Date.now();
+                    if (now - lastWarningTime < 5000) {
+                        warningCount++;
                     } else {
-                        const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
-                        if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。`);
-                        const csvText = await response.text();
-                        if (csvText.trim().startsWith('<!DOCTYPE html>')) throw new Error("資料格式不正確，可能需重新發佈。");
-                        const parsedResult = parseCSV(csvText);
-                        dataCache[gid] = parsedResult;
-                        processData(parsedResult, parentElement);
+                        warningCount = 1;
                     }
-                } catch (error) {
-                    displayError(parentElement, error.message, "請檢查 Google Sheet 設定。");
-                } finally {
-                    hideLoader();
-                }
-            }
-            
-            function processData(parsedResult, parentElement) {
-                const { headers, data } = parsedResult;
-                const isCategoryPage = headers.includes('分類') && headers.includes('gid') && headers.includes('是否有資料夾');
-                const isToolsPage = headers.includes('名稱') && headers.includes('連結');
+                    lastWarningTime = now;
 
-                if (isCategoryPage) {
-                    toolsGrid.innerHTML = '';
-                    const categories = data.filter(item => item['分類'] && item['gid']);
-                    if (categories.length === 0) {
-                        parentElement.innerHTML = '<p>這個分類下沒有子分類。</p>';
+                    if (warningCount >= 3) {
+                        finalWarningOverlay.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                        let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
+                        localStorage.setItem('ultimateWarningCount', ultimateCount);
+
+                        if (ultimateCount >= 3) {
+                            localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
+                            localStorage.removeItem('ultimateWarningCount');
+                        } else {
+                            localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
+                        }
+                        finalWarningOverlay.innerHTML = '<p>偵測到過多不當操作，頁面將在 3 秒後重新載入。</p>';
+                        setTimeout(() => window.location.reload(), 3000);
                         return;
                     }
-                    categories.forEach(cat => {
-                        const { '分類': catName, gid: catGid, '是否有資料夾': hasFoldersStr } = cat;
-                        const hasFolders = hasFoldersStr === '1';
 
-                        const item = document.createElement('div');
-                        item.className = 'category-item';
-                        const button = document.createElement('button');
-                        button.className = 'category-button';
-                        button.innerHTML = `<i class="arrow"></i> <span>${catName}</span>`;
-                        const subContainer = document.createElement('div');
-                        subContainer.className = 'subcategory-container';
-                        item.append(button, subContainer);
-                        
-                        button.addEventListener('click', () => {
-                            const isCurrentlyActive = button.classList.contains('active');
-                            button.classList.toggle('open');
-                            if (hasFolders) {
-                                subContainer.classList.toggle('open');
-                                if (subContainer.classList.contains('open') && subContainer.innerHTML === '') {
-                                    renderCategoryLevel(catGid, subContainer);
-                                }
-                            } else {
-                                document.querySelectorAll('#category-container .category-button.active').forEach(b => {
-                                    if (b !== button) b.classList.remove('active');
-                                });
-                                button.classList.toggle('active', !isCurrentlyActive);
-                                if (!isCurrentlyActive) {
-                                    renderCategoryLevel(catGid, toolsGrid);
-                                } else {
-                                    toolsGrid.innerHTML = '';
-                                }
-                            }
-                        });
-                        parentElement.appendChild(item);
-                    });
-                } else if (isToolsPage) {
-                    renderTools(data);
-                } else {
-                    const detectedHeaders = headers.join(', ') || '無';
-                    throw new Error(`工作表格式無法識別。偵測到的欄位為：「${detectedHeaders}」。`);
+                    if (securityModal.style.display === 'flex') return;
+                    securityModal.style.display = 'flex';
+                    closeSecurityModalBtn.disabled = true;
+                    let countdown = 3;
+                    closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
+                    clearInterval(countdownTimer);
+                    countdownTimer = setInterval(() => {
+                        countdown--;
+                        if (countdown <= 0) {
+                            clearInterval(countdownTimer);
+                            closeSecurityModalBtn.disabled = false;
+                            closeSecurityModalBtn.textContent = '我瞭解了';
+                        } else {
+                            closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
+                        }
+                    }, 1000);
                 }
-            }
-            
-            // --- 程式進入點 ---
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    const pageId = this.dataset.page;
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    pageSections.forEach(section => {
-                        section.classList.toggle('active', section.id === pageId);
-                    });
-                    if (pageId === 'tools' && !toolsLoaded) {
-                        renderCategoryLevel('0', document.getElementById('category-container'));
-                        toolsLoaded = true;
+
+                function hideSecurityWarning() {
+                    securityModal.style.display = 'none';
+                    clearInterval(countdownTimer);
+                }
+
+                closeSecurityModalBtn.addEventListener('click', hideSecurityWarning);
+                
+                document.addEventListener('keydown', function(event) {
+                    if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
+                        event.preventDefault();
+                        showSecurityWarning();
                     }
                 });
+                document.addEventListener('contextmenu', event => event.preventDefault());
+
+                // --- 網站主要功能 ---
+                const sheetId = "2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4";
+                const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
+                const navLinks = document.querySelectorAll('nav a.nav-link');
+                const pageSections = document.querySelectorAll('.page-section');
+                const toolsGrid = document.getElementById('tools-grid');
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const dataCache = {};
+                let toolsLoaded = false;
+                
+                function showLoader() { loadingOverlay.style.display = 'flex'; }
+                function hideLoader() { loadingOverlay.style.display = 'none'; }
+
+                function parseCSV(text) {
+                    const lines = text.trim().split('\n');
+                    if (lines.length === 0) return { headers: [], data: [] };
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    if (lines.length < 2) return { headers: headers, data: [] };
+                    
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const row = lines[i].trim();
+                        if (row === '') continue;
+                        const values = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        const obj = {};
+                        headers.forEach((header, index) => {
+                            if (values[index]) {
+                                let value = values[index].trim();
+                                if (value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1).replace(/""/g, '"');
+                                obj[header] = value;
+                            } else {
+                                obj[header] = '';
+                            }
+                        });
+                        data.push(obj);
+                    }
+                    return { headers, data };
+                }
+
+                function displayError(container, message, suggestion) {
+                    console.error(message);
+                    container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p></div>`;
+                }
+
+                function renderTools(tools) {
+                    toolsGrid.innerHTML = '';
+                    if (!tools || tools.length === 0) {
+                        toolsGrid.innerHTML = '<p>這個分類下沒有找到任何網站。</p>';
+                        return;
+                    }
+                    tools.forEach(tool => {
+                        const name = tool['名稱'] || '無標題';
+                        const description = tool['說明'] || '無描述';
+                        const link = tool['連結'] || '#';
+                        const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No Image';
+                        const card = document.createElement('div');
+                        card.className = 'tool-card';
+                        card.innerHTML = `<img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';"><div class="tool-card-content"><h3>${name}</h3><p>${description}</p><a href="${link}" class="tool-link" target="_blank" rel="noopener noreferrer">前往使用</a></div>`;
+                        toolsGrid.appendChild(card);
+                    });
+                }
+
+                async function renderCategoryLevel(gid, parentElement) {
+                    parentElement.innerHTML = '';
+                    showLoader();
+                    try {
+                        if (dataCache[gid]) {
+                            processData(dataCache[gid], parentElement);
+                        } else {
+                            const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
+                            if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。`);
+                            const csvText = await response.text();
+                            if (csvText.trim().startsWith('<!DOCTYPE html>')) throw new Error("資料格式不正確，可能需重新發佈。");
+                            const parsedResult = parseCSV(csvText);
+                            dataCache[gid] = parsedResult;
+                            processData(parsedResult, parentElement);
+                        }
+                    } catch (error) {
+                        displayError(parentElement, error.message, "請檢查 Google Sheet 設定。");
+                    } finally {
+                        hideLoader();
+                    }
+                }
+                
+                function processData(parsedResult, parentElement) {
+                    const { headers, data } = parsedResult;
+                    const isCategoryPage = headers.includes('分類') && headers.includes('gid') && headers.includes('是否有資料夾');
+                    const isToolsPage = headers.includes('名稱') && headers.includes('連結');
+
+                    if (isCategoryPage) {
+                        toolsGrid.innerHTML = '';
+                        const categories = data.filter(item => item['分類'] && item['gid']);
+                        if (categories.length === 0) {
+                            parentElement.innerHTML = '<p>這個分類下沒有子分類。</p>';
+                            return;
+                        }
+                        categories.forEach(cat => {
+                            const { '分類': catName, gid: catGid, '是否有資料夾': hasFoldersStr } = cat;
+                            const hasFolders = hasFoldersStr === '1';
+
+                            const item = document.createElement('div');
+                            item.className = 'category-item';
+                            const button = document.createElement('button');
+                            button.className = 'category-button';
+                            button.innerHTML = `<i class="arrow"></i> <span>${catName}</span>`;
+                            const subContainer = document.createElement('div');
+                            subContainer.className = 'subcategory-container';
+                            item.append(button, subContainer);
+                            
+                            button.addEventListener('click', () => {
+                                const isCurrentlyActive = button.classList.contains('active');
+                                button.classList.toggle('open');
+                                if (hasFolders) {
+                                    subContainer.classList.toggle('open');
+                                    if (subContainer.classList.contains('open') && subContainer.innerHTML === '') {
+                                        renderCategoryLevel(catGid, subContainer);
+                                    }
+                                } else {
+                                    document.querySelectorAll('#category-container .category-button.active').forEach(b => {
+                                        if (b !== button) b.classList.remove('active');
+                                    });
+                                    button.classList.toggle('active', !isCurrentlyActive);
+                                    if (!isCurrentlyActive) {
+                                        renderCategoryLevel(catGid, toolsGrid);
+                                    } else {
+                                        toolsGrid.innerHTML = '';
+                                    }
+                                }
+                            });
+                            parentElement.appendChild(item);
+                        });
+                    } else if (isToolsPage) {
+                        renderTools(data);
+                    } else {
+                        const detectedHeaders = headers.join(', ') || '無';
+                        throw new Error(`工作表格式無法識別。偵測到的欄位為：「${detectedHeaders}」。`);
+                    }
+                }
+                
+                // --- 程式進入點 ---
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        const pageId = this.dataset.page;
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                        pageSections.forEach(section => {
+                            section.classList.toggle('active', section.id === pageId);
+                        });
+                        if (pageId === 'tools' && !toolsLoaded) {
+                            renderCategoryLevel('0', document.getElementById('category-container'));
+                            toolsLoaded = true;
+                        }
+                    });
+                });
+                
+                navLinks[0].click();
             });
-            
-            navLinks[0].click();
-        });
+        }
     </script>
 </body>
 </html>
