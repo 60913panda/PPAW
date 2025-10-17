@@ -542,18 +542,6 @@
             let warningCount = 0;
             let lastWarningTime = 0;
 
-            // 第三層防護：開發者工具陷阱 (重新導向 + 鎖定)
-            setInterval(function() {
-                const devtools = /./;
-                devtools.toString = function() { this.opened = true; };
-                // 使用 console.log 來觸發 toString，但不在 Console 中留下任何訊息
-                console.log('%c', 'color:transparent', devtools);
-                if (devtools.opened) {
-                    localStorage.setItem('lockoutUntil', Date.now() + 60000); // 設定 60 秒鎖定
-                    window.location.href = 'https://www.google.com/'; // 立即重新導向
-                }
-            }, 1000);
-
             function showSecurityWarning() {
                 const now = Date.now();
                 if (now - lastWarningTime < 5000) {
@@ -563,28 +551,23 @@
                 }
                 lastWarningTime = now;
 
-                // 第二層防護：終極警告
                 if (warningCount >= 3) {
                     finalWarningOverlay.style.display = 'flex';
                     document.body.style.overflow = 'hidden';
-                    
-                    // 3秒後觸發第三層或第四層
-                    setTimeout(() => {
-                        let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
-                        localStorage.setItem('ultimateWarningCount', ultimateCount);
+                    let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
+                    localStorage.setItem('ultimateWarningCount', ultimateCount);
 
-                        if (ultimateCount >= 3) { // 第四層
-                            localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
-                            localStorage.removeItem('ultimateWarningCount'); // 懲罰後重置
-                        } else { // 第三層
-                            localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
-                        }
-                        window.location.href = 'https://www.google.com/';
-                    }, 3000);
+                    if (ultimateCount >= 3) {
+                        localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
+                        localStorage.removeItem('ultimateWarningCount');
+                    } else {
+                        localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
+                    }
+                    finalWarningOverlay.innerHTML = '<p>偵測到過多不當操作，頁面將在 3 秒後重新載入。</p>';
+                    setTimeout(() => window.location.reload(), 3000);
                     return;
                 }
 
-                // 第一層防護：彈出視窗
                 if (securityModal.style.display === 'flex') return;
                 securityModal.style.display = 'flex';
                 closeSecurityModalBtn.disabled = true;
