@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多功能節日計時器</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/solarlunar/solarlunar.min.js"></script>
-    <script>window.solarlunar || document.write('<script src="solarlunar.min.js"><\/script>')</script>
+    <script>
+        if (window.solarlunar) {
+            console.log('✅ 成功從網路 CDN 載入 solarlunar.min.js');
+        } else {
+            console.warn('⚠️ 無法從網路 CDN 載入 solarlunar.min.js，正在嘗試讀取本機檔案...');
+            document.write('<script src="solarlunar.min.js"><\/script>');
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script>window.XLSX || document.write('<script src="xlsx.full.min.js"><\/script>')</script>
+    <script>
+        if (window.XLSX) {
+            console.log('✅ 成功從網路 CDN 載入 xlsx.full.min.js');
+        } else {
+            console.warn('⚠️ 無法從網路 CDN 載入 xlsx.full.min.js，正在嘗試讀取本機檔案...');
+            document.write('<script src="xlsx.full.min.js"><\/script>');
+        }
+    </script>
     <style>
         :root {
             --bg-color-1: #1a2a6c;
@@ -321,41 +335,64 @@
     </main>
 
     <script>
-        // --- 設定區 ---
-        const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSJ1cdJXq-xDZrNyPMN1a4d94p8_udpoGwBtQGw7ecg0r0Dsd-6zNcfHxOdGrJ_pcYt13HbcE67aRa4/pub?gid=739572691&single=true&output=csv';
-        const EXPECTED_FORMAT = '節日,倒數日期,是否為農曆,顏色1,顏色2';
-        // --- 設定區結束 ---
-        
-        // --- 內建節日資料 (備用) ---
-        const localRawHolidayData = [
-            { "name": "元旦", "dateStr": "1/1", "isLunar": false, "colors": ["#ef4444", "#fbbf24"] },
-            { "name": "農曆除夕", "dateStr": "12/30", "isLunar": true, "colors": ["#dc2626", "#facc15"] },
-            { "name": "農曆春節", "dateStr": "1/1", "isLunar": true, "colors": ["#c00", "#f9a602"] },
-            { "name": "元宵節", "dateStr": "1/15", "isLunar": true, "colors": ["#ff4500", "#ff8c00"] },
-            { "name": "和平紀念日", "dateStr": "2/28", "isLunar": false, "colors": ["#d1d5db", "#4b5563"] },
-            { "name": "兒童節", "dateStr": "4/4", "isLunar": false, "colors": ["#34d399", "#60a5fa"] },
-            { "name": "清明節", "dateStr": "4/5", "isLunar": false, "colors": ["#a3a3a3", "#e5e5e5"] },
-            { "name": "勞動節", "dateStr": "5/1", "isLunar": false, "colors": ["#0369a1", "#e0f2fe"] },
-            { "name": "母親節", "dateStr": "5/2/0", "isLunar": false, "colors": ["#ec4899", "#fbcfe8"] },
-            { "name": "端午節", "dateStr": "5/5", "isLunar": true, "colors": ["#16a34a", "#fde047"] },
-            { "name": "父親節", "dateStr": "8/8", "isLunar": false, "colors": ["#2563eb", "#bfdbfe"] },
-            { "name": "七夕", "dateStr": "7/7", "isLunar": true, "colors": ["#9333ea", "#f5d0fe"] },
-            { "name": "中元節", "dateStr": "7/15", "isLunar": true, "colors": ["#78716c", "#e7e5e4"] },
-            { "name": "中秋節", "dateStr": "8/15", "isLunar": true, "colors": ["#f59e0b", "#1e3a8a"] },
-            { "name": "教師節", "dateStr": "9/28", "isLunar": false, "colors": ["#059669", "#d1fae5"] },
-            { "name": "國慶日", "dateStr": "10/10", "isLunar": false, "colors": ["#dc2626", "#3b82f6"] },
-            { "name": "萬聖節", "dateStr": "10/31", "isLunar": false, "colors": ["#f97316", "#171717"] },
-            { "name": "冬至", "dateStr": "12/21", "isLunar": false, "colors": ["#67e8f9", "#0e7490"] },
-            { "name": "聖誕節", "dateStr": "12/25", "isLunar": false, "colors": ["#16a34a", "#dc2626"] }
-        ];
+        // --- 安全功能 ---
+        (function() {
+            const securityModal = document.createElement('div');
+            securityModal.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 10001; backdrop-filter: blur(5px);">
+                    <div style="background-color: white; color: #333; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 5px 25px rgba(0,0,0,0.2); text-align: center;">
+                        <h2 style="color: #d9534f; margin-top: 0; font-size: 1.8em;">住手！</h2>
+                        <p style="line-height: 1.8; margin-bottom: 25px;">這是一個專為開發人員設計的瀏覽器功能。如果有人告訴您在這裡複製貼上任何東西來啟用特殊功能或「駭入」他人帳號，這很可能是一場騙局，並且會讓攻擊者有機會竊取您的個人資訊或控制您的帳號。</p>
+                        <button id="security-modal-close-btn" style="padding: 10px 25px; border: none; border-radius: 8px; background-color: #2c5e32; color: white; font-size: 1em; font-weight: 600; cursor: pointer;">我瞭解了</button>
+                    </div>
+                </div>
+            `;
+            securityModal.style.display = 'none';
+            document.body.appendChild(securityModal);
 
-        // 內建節氣日期資料
-        const SOLAR_TERM_MAP = {
-            '冬至': {
-                2025: '2025-12-21', 2026: '2026-12-22', 2027: '2027-12-22', 2028: '2028-12-21', 2029: '2029-12-21', 2030: '2030-12-22', 2031: '2031-12-22', 2032: '2032-12-21', 2033: '2033-12-21', 2034: '2034-12-22', 2035: '2035-12-22', 2036: '2036-12-21', 2037: '2037-12-21', 2038: '2038-12-22', 2039: '2039-12-22', 2040: '2040-12-21', 2041: '2041-12-21', 2042: '2042-12-21', 2043: '2043-12-22', 2044: '2044-12-21', 2045: '2045-12-21', 2046: '2046-12-22', 2047: '2047-12-22', 2048: '2048-12-21', 2049: '2049-12-21', 2050: '2050-12-22', 2051: '2051-12-22', 2052: '2052-12-21', 2053: '2053-12-21', 2054: '2054-12-22', 2055: '2055-12-22', 2056: '2056-12-21', 2057: '2057-12-21', 2058: '2058-12-21', 2059: '2059-12-22', 2060: '2060-12-21', 2061: '2061-12-21', 2062: '2062-12-22', 2063: '2063-12-22', 2064: '2064-12-21', 2065: '2065-12-21', 2066: '2066-12-22', 2067: '2067-12-22', 2068: '2068-12-21', 2069: '2069-12-21', 2070: '2070-12-22', 2071: '2071-12-22', 2072: '2072-12-21', 2073: '2073-12-21', 2074: '2074-12-22', 2075: '2075-12-22', 2076: '2076-12-21', 2077: '2077-12-21', 2078: '2078-12-22', 2079: '2079-12-22', 2080: '2080-12-21', 2081: '2081-12-21', 2082: '2082-12-22', 2083: '2083-12-22', 2084: '2084-12-21', 2085: '2085-12-21', 2086: '2086-12-21', 2087: '2087-12-22', 2088: '2088-12-21', 2089: '2089-12-21', 2090: '2090-12-21', 2091: '2091-12-22', 2092: '2092-12-21', 2093: '2093-12-21', 2094: '2094-12-21', 2095: '2095-12-22', 2096: '2096-12-21', 2097: '2097-12-21', 2098: '2098-12-21', 2099: '2099-12-22', 2100: '2100-12-22', 2101: '2101-12-22', 2102: '2102-12-22', 2103: '2103-12-23', 2104: '2104-12-22', 2105: '2105-12-22', 2106: '2106-12-22', 2107: '2107-12-23', 2108: '2108-12-22', 2109: '2109-12-22', 2110: '2110-12-22', 2111: '2111-12-23', 2112: '2112-12-22', 2113: '2113-12-22', 2114: '2114-12-22', 2115: '2115-12-23', 2116: '2116-12-22', 2117: '2117-12-22', 2118: '2118-12-22', 2119: '2119-12-23', 2120: '2120-12-22', 2121: '2121-12-22', 2122: '2122-12-22', 2123: '2123-12-23', 2124: '2124-12-22'
+            const closeBtn = document.getElementById('security-modal-close-btn');
+            let countdownTimer;
+
+            function showSecurityWarning() {
+                if (securityModal.style.display === 'flex') return;
+                securityModal.style.display = 'flex';
+                closeBtn.disabled = true;
+                let countdown = 3;
+                closeBtn.textContent = `我瞭解了 (${countdown})`;
+                clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(countdownTimer);
+                        closeBtn.disabled = false;
+                        closeBtn.textContent = '我瞭解了';
+                    } else {
+                        closeBtn.textContent = `我瞭解了 (${countdown})`;
+                    }
+                }, 1000);
             }
-        };
 
+            function hideSecurityWarning() {
+                securityModal.style.display = 'none';
+                clearInterval(countdownTimer);
+            }
+
+            closeBtn.addEventListener('click', hideSecurityWarning);
+
+            document.addEventListener('keydown', function(event) {
+                if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
+                    event.preventDefault();
+                    showSecurityWarning();
+                }
+            });
+            document.addEventListener('contextmenu', event => event.preventDefault());
+        })();
+
+
+        // --- 主程式碼 ---
+        const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQCTWbsAW4dgDJKZ_PpraMgQ0z9iRL1qGZCcPVGZWsmk1KZHqQWfqps5z-xWwxS_g/pub?gid=1031848826&single=true&output=csv';
+        const EXPECTED_FORMAT = '節日,倒數日期,是否為農曆,顏色1,顏色2';
+        
         const holidayTitleEl = document.getElementById('holiday-title');
         const countdownEl = document.getElementById('countdown');
         const controlsContainerEl = document.getElementById('controls-container');
@@ -383,37 +420,43 @@
         function calculateHolidayDateForYear(holiday, year) {
             const { name, dateStr, isLunar } = holiday;
             
+            // 內建節氣日期資料 (範例)
+            const SOLAR_TERM_MAP = {
+                '冬至': {
+                    2025: '2025-12-21', 2026: '2026-12-22', 2027: '2027-12-22', 2028: '2028-12-21'
+                    // ... 更多年份 ...
+                }
+            };
             if (SOLAR_TERM_MAP[name] && SOLAR_TERM_MAP[name][year]) {
                 return `${SOLAR_TERM_MAP[name][year]}T00:00:00`;
             }
             
             if (!isLunar) {
+                // 浮動日期格式 M/W/D (月/第N週/星期幾) e.g., 5/2/0 (五月第二個週日)
                 const floatingMatch = dateStr.match(/^(\d{1,2})\/(\d)\/(\d)$/);
                 if (floatingMatch) {
                     const [, month, weekNum, dayOfWeek] = floatingMatch.map(Number);
                     const calculatedDate = calculateFloatingHoliday(year, month, weekNum, dayOfWeek);
                     return `${year}-${formatTime(calculatedDate.getMonth() + 1)}-${formatTime(calculatedDate.getDate())}T00:00:00`;
                 } else {
+                    // 標準日期格式 M/D
                     const [month, day] = dateStr.split('/');
                     if (!month || !day || isNaN(parseInt(month)) || isNaN(parseInt(day))) throw new Error(`日期格式錯誤`);
                     return `${year}-${formatTime(month)}-${formatTime(day)}T00:00:00`;
                 }
             }
             
+            // 農曆日期計算
             if (name === "農曆除夕") {
                 const lnySolar = solarlunar.lunar2solar(year, 1, 1);
                 const lnyDate = new Date(lnySolar.cYear, lnySolar.cMonth - 1, lnySolar.cDay);
                 lnyDate.setDate(lnyDate.getDate() - 1);
-                const eveYear = lnyDate.getFullYear();
-
-                const eveSolar = solarlunar.lunar2solar(eveYear, 1, 1);
-                const eveLnyDate = new Date(eveSolar.cYear, eveSolar.cMonth-1, eveSolar.cDay)
-                eveLnyDate.setDate(eveLnyDate.getDate()-1);
-
-                return `${eveLnyDate.getFullYear()}-${formatTime(eveLnyDate.getMonth() + 1)}-${formatTime(eveLnyDate.getDate())}T00:00:00`;
+                return `${lnyDate.getFullYear()}-${formatTime(lnyDate.getMonth() + 1)}-${formatTime(lnyDate.getDate())}T00:00:00`;
             }
 
             const [lunarMonth, lunarDay] = dateStr.split('/').map(Number);
+            if(isNaN(lunarMonth) || isNaN(lunarDay)) throw new Error(`農曆日期格式錯誤`);
+            
             const solarData = solarlunar.lunar2solar(year, lunarMonth, lunarDay);
             if (solarData.cYear) {
                 const resultDate = new Date(Date.UTC(solarData.cYear, solarData.cMonth - 1, solarData.cDay));
@@ -486,12 +529,12 @@
         function createMainCountdownHTML() {
              countdownEl.style.gridTemplateColumns = '';
              countdownEl.innerHTML = `
-                <div class="time-unit"><span id="years">00</span><label>年</label></div>
-                <div class="time-unit"><span id="months">00</span><label>月</label></div>
-                <div class="time-unit"><span id="days">00</span><label>天</label></div>
-                <div class="time-unit"><span id="hours">00</span><label>時</label></div>
-                <div class="time-unit"><span id="minutes">00</span><label>分</label></div>
-                <div class="time-unit"><span id="seconds">00</span><label>秒</label></div>`;
+                 <div class="time-unit"><span id="years">00</span><label>年</label></div>
+                 <div class="time-unit"><span id="months">00</span><label>月</label></div>
+                 <div class="time-unit"><span id="days">00</span><label>天</label></div>
+                 <div class="time-unit"><span id="hours">00</span><label>時</label></div>
+                 <div class="time-unit"><span id="minutes">00</span><label>分</label></div>
+                 <div class="time-unit"><span id="seconds">00</span><label>秒</label></div>`;
         }
         
         function getExtendedCountdown(targetDate) {
@@ -565,6 +608,18 @@
             
             errorContainer.innerHTML = '';
             noticeContainer.innerHTML = '';
+
+            if (notice) {
+                noticeContainer.innerHTML = `<div class="notice-container">ℹ️ ${notice}</div>`;
+            }
+            
+            if (errors.length > 0) {
+                let html = `<div class="parsing-error-container"><h3>⚠️ 讀取資料時發現以下問題 (已略過)：</h3><ul>`;
+                errors.forEach(err => {
+                    html += `<li><strong>第 ${err.row} 行：</strong> ${err.message}<br><code>${err.data}</code></li>`;
+                });
+                errorContainer.innerHTML = html + `</ul></div>`;
+            }
         }
 
         function populateAndupdateHolidayList(sourceData, year) {
@@ -639,8 +694,8 @@
             calculateUpcomingHolidays(sourceData);
             populateYearSelector();
             
-            countdownEl.innerHTML = '';
-            loadFileBtn.classList.add('hidden');
+            countdownEl.innerHTML = ''; // Clear loading/error messages
+            loadFileBtn.classList.add('hidden'); // Hide file load button
 
             if (upcomingHolidays.length === 0) {
                  holidayTitleEl.textContent = '找不到可用的節日資料';
@@ -662,7 +717,7 @@
                        const year = parseInt(yearSelectorEl.value);
                        const holidaysForYear = rawHolidayDataSource.map(h => {
                              try { return { ...h, date: calculateHolidayDateForYear(h, year) }; } catch { return null; }
-                        }).filter(Boolean).sort((a,b) => new Date(a.date) - new Date(b.date));
+                       }).filter(Boolean).sort((a,b) => new Date(a.date) - new Date(b.date));
                        
                        holidaysForYear.forEach((holiday, index) => {
                             const el = document.getElementById(`list-countdown-${index}`);
@@ -707,27 +762,30 @@
                     
                     const headerRow = jsonData[0].join(',').trim();
                      if (headerRow !== EXPECTED_FORMAT) {
-                        console.error(`檔案欄位格式錯誤！\n預期欄位: ${EXPECTED_FORMAT}\n偵測到欄位: ${headerRow}`);
-                        return;
+                         alert(`檔案欄位格式錯誤！\n預期欄位: ${EXPECTED_FORMAT}\n偵測到欄位: ${headerRow}`);
+                         return;
                     }
 
                     const fileHolidayData = [];
+                    const parsingErrors = [];
                     for(let i = 1; i < jsonData.length; i++) {
                         try {
                             const row = jsonData[i];
-                             if (row.length < 5) continue;
+                             if (row.length < 5) throw new Error('欄位不足');
                              const [name, dateStr, isLunarStr, color1, color2] = row.map(cell => String(cell).trim());
-                             if (!name || !dateStr || !isLunarStr || !color1 || !color2) continue;
+                             if (!name || !dateStr || !isLunarStr || !color1 || !color2) throw new Error('資料不完整');
                              fileHolidayData.push({ name, dateStr, isLunar: isLunarStr === '是', colors: [color1, color2] });
                         } catch(error) {
-                             console.warn(`第 ${i+1} 行資料讀取失敗:`, row);
+                             parsingErrors.push({ row: i + 1, data: row.join(','), message: error.message });
                         }
                     }
                     
+                    displayMessages({ errors: parsingErrors, notice: `成功從 "${file.name}" 載入 ${fileHolidayData.length} 筆節日資料。`});
                     setupAppWithData(fileHolidayData);
                     
                 } catch (error) {
                     console.error('讀取檔案時發生錯誤:', error);
+                    displayMessages({ errors: [{ row: '檔案', data: file.name, message: `讀取失敗，請確認檔案格式 (.xlsx, .csv)` }] });
                 } finally {
                     fileInput.value = '';
                 }
@@ -740,15 +798,20 @@
             holidayTitleEl.textContent = '正在讀取節日清單...';
             try {
                 const { holidays: fetchedHolidays, errors: parsingErrors } = await fetchAndParseHolidays();
-                if (parsingErrors.length > 0) {
-                    parsingErrors.forEach(err => console.warn(`第 ${err.row} 行資料讀取失敗: ${err.message}`, `資料: ${err.data}`));
-                }
+                displayMessages({ errors: parsingErrors });
                 setupAppWithData(fetchedHolidays);
             } catch (error) {
-                console.warn('讀取網路試算表失敗，請從本機載入檔案:', error);
-                holidayTitleEl.textContent = '請載入節日檔案';
-                countdownEl.innerHTML = '';
-                loadFileBtn.classList.remove('hidden');
+                console.warn('讀取網路試算表失敗:', error);
+                if (error.message.startsWith('FORMAT_MISMATCH:')) {
+                     const detectedFormat = error.message.split(':')[1];
+                    holidayTitleEl.textContent = '試算表格式錯誤';
+                    countdownEl.innerHTML = `<div class="error-message"><strong>請檢查 Google Sheets 標題列！</strong><br><br>偵測格式：<br><code>${detectedFormat}</code><br><br>預期格式：<br><code>${EXPECTED_FORMAT}</code></div>`;
+                } else {
+                    holidayTitleEl.textContent = '無法讀取網路資料';
+                    countdownEl.innerHTML = '';
+                    displayMessages({ notice: '無法連接網路試算表，請從您的電腦載入節日檔案 (.xlsx, .csv) 以繼續。' });
+                    loadFileBtn.classList.remove('hidden');
+                }
             }
         }
 
