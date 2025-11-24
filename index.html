@@ -38,25 +38,6 @@
             padding: 20px;
         }
 
-        /* 裝置類型顯示器 */
-        #device-type-display {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #00ff00;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 10000;
-            pointer-events: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            border: 1px solid #333;
-            max-width: 200px;
-            word-break: break-all;
-        }
-
         /* 頁首 & 導覽列 */
         header {
             display: flex;
@@ -132,7 +113,7 @@
             padding-bottom: 10px;
         }
         
-        /* 嵌入計時器 */
+        /* 嵌入計時器樣式 */
         #countdown-container {
             margin-top: 30px;
             background-color: #f8fbf6;
@@ -148,7 +129,7 @@
             border: none;
         }
 
-        /* 巢狀分類 */
+        /* 巢狀分類樣式 */
         #category-container {
             margin-bottom: 30px;
         }
@@ -322,66 +303,9 @@
             display: block;
             margin-bottom: 10px;
         }
-        
-        /* 安全警告 Modal */
-        .security-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10001;
-            backdrop-filter: blur(5px);
-        }
 
-        .security-modal-content {
-            background-color: white;
-            color: #333;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-        
-        .security-modal-content h2 {
-            color: #d9534f;
-            margin-top: 0;
-            font-size: 1.8em;
-        }
-
-        .security-modal-content p {
-            line-height: 1.8;
-            margin-bottom: 25px;
-        }
-
-        .security-modal-close-btn {
-            padding: 10px 25px;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--primary-color);
-            color: white;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .security-modal-close-btn:hover {
-            background-color: #1e4222;
-        }
-        .security-modal-close-btn:disabled {
-            background-color: #9ca3af;
-            cursor: not-allowed;
-            opacity: 0.8;
-        }
-        
-        /* 終極警告畫面 */
-        #final-warning-overlay {
+        /* 視窗大小封鎖畫面 */
+        #size-blocker-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -393,14 +317,17 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 10002;
+            z-index: 20000;
             text-align: center;
-            font-size: 2em;
+            font-size: 1.5em;
             font-weight: bold;
             padding: 20px;
             box-sizing: border-box;
         }
-
+        #size-blocker-overlay p {
+            margin: 10px 0;
+        }
+        
         /* 頁尾 */
         footer {
             text-align: center;
@@ -455,22 +382,13 @@
         <p>載入中...</p>
     </div>
     
-    <!-- 安全警告彈出視窗 -->
-    <div id="security-modal" class="security-modal-overlay">
-        <div class="security-modal-content">
-            <h2>住手！</h2>
-            <p>這是一個專為開發人員設計的瀏覽器功能。如果有人告訴您在這裡複製貼上任何東西來啟用特殊功能或「駭入」他人帳號，這很可能是一場騙局，並且會讓攻擊者有機會竊取您的個人資訊或控制您的帳號。</p>
-            <button id="close-security-modal" class="security-modal-close-btn">我瞭解了</button>
-        </div>
+    <!-- 視窗大小封鎖畫面 -->
+    <div id="size-blocker-overlay">
+        <p>偵測到視窗大小異常，頁面已被封鎖。</p>
+        <p id="screen-info"></p>
+        <p id="window-info"></p>
+        <p>正在重新導向...</p>
     </div>
-    
-    <!-- 終極警告畫面 -->
-    <div id="final-warning-overlay">
-        <p>偵測到不當操作，頁面已被鎖定。</p>
-    </div>
-    
-    <!-- 裝置類型與尺寸顯示器 -->
-    <div id="device-type-display"></div>
 
 
     <div class="container">
@@ -525,170 +443,65 @@
     
     <!-- JavaScript 程式碼 -->
     <script>
-        // --- 鎖定機制檢查 ---
-        (function() {
-            const lockoutUntil = localStorage.getItem('lockoutUntil');
-            
-            if (!lockoutUntil || isNaN(lockoutUntil)) {
-                localStorage.removeItem('lockoutUntil');
-                localStorage.removeItem('ultimateWarningCount');
+        // --- 安全防護與封鎖機制 ---
+        (async function() {
+            const blockerOverlay = document.getElementById('size-blocker-overlay');
+            const screenInfo = document.getElementById('screen-info');
+            const windowInfo = document.getElementById('window-info');
+
+            // 1. 檢查是否已被永久封鎖
+            if (localStorage.getItem('foreverBlocked') === 'true') {
+                window.location.href = 'https://www.google.com/';
                 return;
             }
 
-            const lockoutEndTime = parseInt(lockoutUntil, 10);
-            if (Date.now() < lockoutEndTime) {
-                document.documentElement.innerHTML = `
-                    <head><title>頁面已鎖定</title><style>body{margin:0;background-color:#111;color:white;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;text-align:center;}p{font-size:1.5em;}#timer{font-size:3em;font-weight:bold;color:#ff4d4d;}</style></head>
-                    <body><p>偵測到過多不當操作，頁面已被暫時鎖定。</p><p>請在 <span id="timer"></span> 秒後再試。</p></body>`;
-                
-                const timerEl = document.getElementById('timer');
-                const interval = setInterval(() => {
-                    const remaining = Math.ceil((lockoutEndTime - Date.now()) / 1000);
-                    if (timerEl) timerEl.textContent = remaining > 0 ? remaining : 0;
-                    if (remaining <= 0) {
-                        clearInterval(interval);
-                        localStorage.removeItem('lockoutUntil');
-                        localStorage.removeItem('ultimateWarningCount');
-                        window.location.reload();
-                    }
-                }, 1000);
-                throw new Error("Page is locked.");
-            } else {
-                localStorage.removeItem('lockoutUntil');
-                localStorage.removeItem('ultimateWarningCount');
+            // 2. 偵測 Brave 瀏覽器
+            if (navigator.brave && await navigator.brave.isBrave()) {
+                localStorage.setItem('foreverBlocked', 'true');
+                window.location.href = 'https://www.google.com/';
+                return;
             }
+
+            // 3. 偵測視窗大小 (Kiosk 模式強制檢查)
+            function checkSizeAndBlock() {
+                // 判斷是否為電腦 (簡單判斷，避免手機被鎖)
+                // 如果 userAgent 包含 Mobile，則不執行嚴格檢查
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (!isMobile) {
+                    const sW = window.screen.width;
+                    const sH = window.screen.height;
+                    const wW = window.outerWidth;
+                    const wH = window.outerHeight;
+
+                    // 如果視窗大小 小於 螢幕大小 (嚴格檢查)
+                    if (wW < sW || wH < sH) {
+                        localStorage.setItem('foreverBlocked', 'true');
+                        
+                        blockerOverlay.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                        
+                        screenInfo.textContent = `螢幕大小: ${sW} x ${sH}`;
+                        windowInfo.textContent = `視窗大小: ${wW} x ${wH}`;
+
+                        setTimeout(() => {
+                            window.location.href = 'https://www.google.com/';
+                        }, 3000); // 顯示3秒後跳轉
+                    }
+                }
+            }
+
+            // 初始檢查
+            checkSizeAndBlock();
+            
+            // 持續監控 (每秒檢查一次，防止載入後縮小視窗)
+            setInterval(checkSizeAndBlock, 1000);
+
         })();
+
 
         // --- 主程式碼 ---
         document.addEventListener('DOMContentLoaded', function() {
-            // --- 裝置偵測與顯示 ---
-            const deviceDisplay = document.getElementById('device-type-display');
-            
-            function isMobileDevice() {
-                // 簡單的行動裝置偵測 regex
-                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            }
-
-            function updateDeviceDisplay() {
-                if (!deviceDisplay) return;
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-                let type = '電腦';
-                
-                if (isMobileDevice()) {
-                    type = '行動裝置';
-                    deviceDisplay.style.color = '#ffff00'; // 黃色表示不監控
-                } else {
-                    deviceDisplay.style.color = '#00ff00'; // 綠色表示監控中
-                }
-
-                deviceDisplay.textContent = `偵測為: ${type} (${width}x${height})`;
-            }
-            
-            window.addEventListener('resize', updateDeviceDisplay);
-            updateDeviceDisplay();
-
-            // --- 安全功能 ---
-            const securityModal = document.getElementById('security-modal');
-            const closeSecurityModalBtn = document.getElementById('close-security-modal');
-            const finalWarningOverlay = document.getElementById('final-warning-overlay');
-            let countdownTimer;
-            let warningCount = 0;
-            let lastWarningTime = 0;
-
-            // 【關鍵升級】 第三層防護：條件式開發者工具陷阱 (尺寸偵測)
-            (function() {
-                // 只有當判定為「非行動裝置」(即電腦) 時才啟動偵測
-                if (isMobileDevice()) return;
-
-                setTimeout(() => {
-                    const initialWidth = window.outerWidth;
-                    const initialHeight = window.outerHeight;
-                    const threshold = 160; // 寬容度，允許正常的視窗框線差異
-
-                    setInterval(() => {
-                        // 重新檢查是否為行動裝置 (防止視窗縮小後誤判)
-                        if (isMobileDevice()) return;
-
-                        const currentWidth = window.innerWidth;
-                        const currentHeight = window.innerHeight;
-                        
-                        // 計算內外邊距差
-                        const widthDiff = window.outerWidth - window.innerWidth;
-                        const heightDiff = window.outerHeight - window.innerHeight;
-
-                        // 如果邊距差異常大，代表 DevTools 開啟佔據了空間
-                        if (widthDiff > threshold || heightDiff > threshold) {
-                            localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒鎖定
-                            window.location.href = 'https://github.com/'; // 重新導向
-                        }
-                    }, 1000);
-                }, 2000); // 延遲 2 秒啟動，確保頁面載入穩定
-            })();
-
-            function showSecurityWarning() {
-                const now = Date.now();
-                if (now - lastWarningTime < 5000) {
-                    warningCount++;
-                } else {
-                    warningCount = 1;
-                }
-                lastWarningTime = now;
-
-                // 第二層防護：終極警告
-                if (warningCount >= 3) {
-                    finalWarningOverlay.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                    let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
-                    localStorage.setItem('ultimateWarningCount', ultimateCount);
-
-                    if (ultimateCount >= 3) {
-                        localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
-                        localStorage.removeItem('ultimateWarningCount');
-                    } else {
-                        localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
-                    }
-                    finalWarningOverlay.innerHTML = '<p>偵測到過多不當操作，頁面將在 3 秒後鎖定。</p>';
-                    // 鎖定後只重新載入，不導向
-                    setTimeout(() => window.location.reload(), 3000);
-                    return;
-                }
-
-                // 第一層防護：彈出視窗
-                if (securityModal.style.display === 'flex') return;
-                securityModal.style.display = 'flex';
-                closeSecurityModalBtn.disabled = true;
-                let countdown = 3;
-                closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
-                clearInterval(countdownTimer);
-                countdownTimer = setInterval(() => {
-                    countdown--;
-                    if (countdown <= 0) {
-                        clearInterval(countdownTimer);
-                        closeSecurityModalBtn.disabled = false;
-                        closeSecurityModalBtn.textContent = '我瞭解了';
-                    } else {
-                        closeSecurityModalBtn.textContent = `我瞭解了 (${countdown})`;
-                    }
-                }, 1000);
-            }
-
-            function hideSecurityWarning() {
-                securityModal.style.display = 'none';
-                clearInterval(countdownTimer);
-            }
-
-            closeSecurityModalBtn.addEventListener('click', hideSecurityWarning);
-            
-            document.addEventListener('keydown', function(event) {
-                if (event.keyCode === 123 || (event.ctrlKey && event.shiftKey && event.keyCode === 73) || (event.metaKey && event.altKey && event.keyCode === 73)) {
-                    event.preventDefault();
-                    showSecurityWarning();
-                }
-            });
-            document.addEventListener('contextmenu', event => event.preventDefault());
-
-            // --- 網站主要功能 ---
             const sheetId = "2PACX-1vQCTWbsAW4dgDJKZ_PpraMgQ0z9iRL1qGZCcPVGZWsmk1KZHqQWfqps5z-xWwxS_g";
             const baseCsvUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?single=true&output=csv`;
             const navLinks = document.querySelectorAll('nav a.nav-link');
@@ -847,7 +660,7 @@
             navLinks[0].click();
         });
     </script>
-
+    
     <!-- 重新嵌入隱藏的警告頁面 -->
     <iframe src="./warning.html" style="display: none;" title="安全警告"></iframe>
 </body>
