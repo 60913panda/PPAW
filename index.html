@@ -38,6 +38,21 @@
             margin: 0 auto;
             padding: 20px;
         }
+        
+        /* 【新增】視窗大小顯示器 */
+        #window-size-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 10000; /* 在最上層，但在警告視窗之下 */
+            pointer-events: none; /* 不阻擋點擊 */
+        }
 
         /* --- 頁首 & 導覽列 --- */
         header {
@@ -452,6 +467,9 @@
     <div id="final-warning-overlay">
         <p>偵測到不當操作，頁面已被鎖定。</p>
     </div>
+    
+    <!-- 【新增】視窗大小顯示器 -->
+    <div id="window-size-display"></div>
 
 
     <div class="container">
@@ -506,6 +524,16 @@
     
     <!-- JavaScript 程式碼 -->
     <script>
+        // --- 【新增】視窗大小顯示邏輯 ---
+        function updateWindowSize() {
+            const display = document.getElementById('window-size-display');
+            if (display) {
+                display.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+            }
+        }
+        window.addEventListener('resize', updateWindowSize);
+        updateWindowSize(); // 初始化時執行一次
+
         // --- 鎖定機制檢查 ---
         (function() {
             const lockoutUntil = localStorage.getItem('lockoutUntil');
@@ -555,6 +583,7 @@
                         const currentHeight = window.innerHeight;
 
                         if (initialWidth - currentWidth > threshold || initialHeight - currentHeight > threshold) {
+                            // 觸發60秒鎖定並重新導向
                             localStorage.setItem('lockoutUntil', Date.now() + 60000);
                             window.location.href = 'https://github.com/';
                         }
@@ -576,20 +605,18 @@
                 if (warningCount >= 3) {
                     finalWarningOverlay.style.display = 'flex';
                     document.body.style.overflow = 'hidden';
-                    
-                    // 3秒後觸發第三層或第四層
-                    setTimeout(() => {
-                        let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
-                        localStorage.setItem('ultimateWarningCount', ultimateCount);
+                    let ultimateCount = parseInt(localStorage.getItem('ultimateWarningCount') || '0') + 1;
+                    localStorage.setItem('ultimateWarningCount', ultimateCount);
 
-                        if (ultimateCount >= 3) { // 第四層
-                            localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
-                            localStorage.removeItem('ultimateWarningCount'); // 懲罰後重置
-                        } else { // 第三層
-                            localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
-                        }
-                        window.location.href = 'https://www.google.com/';
-                    }, 3000);
+                    if (ultimateCount >= 3) {
+                        localStorage.setItem('lockoutUntil', Date.now() + 3600000); // 1小時
+                        localStorage.removeItem('ultimateWarningCount');
+                    } else {
+                        localStorage.setItem('lockoutUntil', Date.now() + 60000); // 60秒
+                    }
+                    finalWarningOverlay.innerHTML = '<p>偵測到過多不當操作，頁面將在 3 秒後重新載入。</p>';
+                    // 鎖定後只重新載入，不導向
+                    setTimeout(() => window.location.reload(), 3000);
                     return;
                 }
 
@@ -777,7 +804,7 @@
                         section.classList.toggle('active', section.id === pageId);
                     });
                     if (pageId === 'tools' && !toolsLoaded) {
-                        renderCategoryLevel('1860425358', document.getElementById('category-container')); // 使用新的 GID
+                        renderCategoryLevel('0', document.getElementById('category-container'));
                         toolsLoaded = true;
                     }
                 });
@@ -788,4 +815,3 @@
     </script>
 </body>
 </html>
-
