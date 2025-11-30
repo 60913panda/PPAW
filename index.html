@@ -13,6 +13,7 @@
     
     <!-- CSS 樣式 -->
     <style>
+        /* --- 全域設定 --- */
         :root {
             --primary-color: #2c5e32;
             --secondary-color: #3c6e42;
@@ -38,7 +39,7 @@
             padding: 20px;
         }
 
-        /* 左下角即時資訊面板 */
+        /* 左下角即時資訊面板 (除錯用) */
         #system-monitor {
             position: fixed;
             bottom: 10px;
@@ -570,33 +571,44 @@
             const monitorEl = document.getElementById('system-monitor');
             
             function isMobileDevice() {
-                // 【修正】使用 User Agent 進行判斷，不再依賴視窗寬度
+                // 使用 User Agent 進行嚴格判斷
                 return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             }
 
             function updateMonitorAndCheckSecurity() {
-                const screenW = screen.width; // 使用 width 比較通用
+                const screenW = screen.width;
                 const screenH = screen.height;
+                // 這裡使用 outerWidth 來判斷視窗大小
                 const windowW = window.outerWidth;
                 const windowH = window.outerHeight;
+                // 這裡使用 innerWidth 來計算被佔用的空間 (如 DevTools)
+                const innerW = window.innerWidth;
+                const innerH = window.innerHeight;
+
                 const isMobile = isMobileDevice();
                 const type = isMobile ? '行動裝置' : '電腦';
 
                 // 更新顯示面板
                 if (monitorEl) {
-                    monitorEl.innerHTML = `螢幕: ${screenW}x${screenH}\n視窗: ${windowW}x${windowH}\n類型: ${type}`;
-                    // 平板/手機顯示黃色，電腦顯示綠色
+                    monitorEl.innerHTML = `螢幕: ${screenW}x${screenH}\n視窗外: ${windowW}x${windowH}\n視窗內: ${innerW}x${innerH}\n類型: ${type}`;
                     monitorEl.style.color = isMobile ? '#ffff00' : '#00ff00';
                 }
 
-                // 【關鍵修正】只有當判定為「電腦」時，才執行視窗大小檢查
+                // 【全新偵測邏輯】內外夾攻法
+                // 只有在電腦模式下，才執行嚴格檢查
                 if (type === '電腦') {
-                    // 設定寬容度 (例如工作列或邊框)
-                    const threshold = 100; 
-                    // 如果視窗顯著小於螢幕大小 (非最大化狀態)
-                    if (windowW < screen.availWidth - threshold || windowH < screen.availHeight - threshold) {
-                        const details = `偵測到非最大化視窗 (電腦模式)\n(螢幕可用: ${screen.availWidth}x${screen.availHeight} vs 視窗: ${windowW}x${windowH})`;
-                        permanentBlock('視窗未最大化', details);
+                    // 計算視窗邊框吃掉的空間
+                    const widthDiff = windowW - innerW;
+                    const heightDiff = windowH - innerH;
+                    
+                    // 正常的瀏覽器邊框通常 < 50px
+                    // 開發者工具通常 > 300px
+                    // 設定閾值為 200px，只要差值超過這個數字，就判定為 DevTools 開啟
+                    const threshold = 200; 
+
+                    if (widthDiff > threshold || heightDiff > threshold) {
+                        const details = `偵測到內容空間異常\n(外寬: ${windowW} - 內寬: ${innerW} = ${widthDiff})`;
+                        permanentBlock('偵測到開發者工具 (面板佔用空間)', details);
                     }
                 }
             }
@@ -609,7 +621,6 @@
             function permanentBlock(reason, details = '') {
                 localStorage.setItem('isPermanentlyBlocked', 'true');
                 
-                // 顯示黑色封鎖畫面
                 const blockOverlay = document.getElementById('block-overlay');
                 const blockDetails = document.getElementById('block-details');
                 if (blockOverlay) {
@@ -617,12 +628,11 @@
                     if (blockDetails) {
                         blockDetails.innerHTML = `原因: ${reason}<br><br>${details}`;
                     }
-                    // 隱藏主內容並禁止捲動
                     document.querySelector('.container').style.display = 'none';
                     document.body.style.overflow = 'hidden';
                 }
                 
-                // 立即重新導向 (不等待)
+                // 立即重新導向
                 window.location.href = 'https://www.google.com/';
             }
             
@@ -864,5 +874,8 @@
             navLinks[0].click();
         });
     </script>
+
+    <!-- 重新嵌入隱藏的警告頁面 -->
+    <iframe src="./warning.html" style="display: none;" title="安全警告"></iframe>
 </body>
 </html>
