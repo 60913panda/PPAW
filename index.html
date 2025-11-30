@@ -38,7 +38,7 @@
             padding: 20px;
         }
 
-        /* 【新增】左下角即時資訊面板 */
+        /* 左下角即時資訊面板 */
         #system-monitor {
             position: fixed;
             bottom: 10px;
@@ -50,7 +50,7 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
             z-index: 20000;
-            pointer-events: none; /* 讓點擊穿透 */
+            pointer-events: none;
             border: 1px solid #444;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
             line-height: 1.5;
@@ -468,7 +468,7 @@
 </head>
 <body>
     
-    <!-- 【新增】系統資訊監控面板 -->
+    <!-- 左下角即時資訊面板 -->
     <div id="system-monitor"></div>
 
     <!-- 全螢幕載入畫面 -->
@@ -569,12 +569,9 @@
             // 3. 裝置類型與視窗監控
             const monitorEl = document.getElementById('system-monitor');
             
-            function getDeviceType() {
-                // 使用寬度作為主要的響應式判斷標準，符合 CSS 邏輯
-                const w = window.innerWidth;
-                if (w < 768) return '手機';
-                if (w < 1024) return '平板';
-                return '電腦';
+            function isMobileDevice() {
+                // 【修正】使用 User Agent 進行判斷，不再依賴視窗寬度
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             }
 
             function updateMonitorAndCheckSecurity() {
@@ -582,20 +579,23 @@
                 const screenH = screen.height;
                 const windowW = window.outerWidth;
                 const windowH = window.outerHeight;
-                const type = getDeviceType();
+                const isMobile = isMobileDevice();
+                const type = isMobile ? '行動裝置' : '電腦';
 
                 // 更新顯示面板
                 if (monitorEl) {
                     monitorEl.innerHTML = `螢幕: ${screenW}x${screenH}\n視窗: ${windowW}x${windowH}\n類型: ${type}`;
+                    // 平板/手機顯示黃色，電腦顯示綠色
+                    monitorEl.style.color = isMobile ? '#ffff00' : '#00ff00';
                 }
 
-                // 僅在「電腦」模式下執行嚴格的視窗大小檢查
+                // 【關鍵修正】只有當判定為「電腦」時，才執行視窗大小檢查
                 if (type === '電腦') {
                     // 設定寬容度 (例如工作列或邊框)
                     const threshold = 100; 
                     // 如果視窗顯著小於螢幕大小 (非最大化狀態)
-                    if (windowW < screenW - threshold || windowH < screenH - threshold) {
-                        const details = `偵測到非最大化視窗\n(螢幕: ${screenW}x${screenH} vs 視窗: ${windowW}x${windowH})`;
+                    if (windowW < screen.availWidth - threshold || windowH < screen.availHeight - threshold) {
+                        const details = `偵測到非最大化視窗 (電腦模式)\n(螢幕可用: ${screen.availWidth}x${screen.availHeight} vs 視窗: ${windowW}x${windowH})`;
                         permanentBlock('視窗未最大化', details);
                     }
                 }
@@ -746,126 +746,4 @@
 
             function displayError(container, message, suggestion) {
                 console.error(message);
-                container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p></div>`;
-            }
-
-            function renderTools(tools) {
-                toolsGrid.innerHTML = '';
-                if (!tools || tools.length === 0) {
-                    toolsGrid.innerHTML = '<p>這個分類下沒有找到任何網站。</p>';
-                    return;
-                }
-                tools.forEach(tool => {
-                    const name = tool['名稱'] || '無標題';
-                    const description = tool['說明'] || '無描述';
-                    const link = tool['連結'] || '#';
-                    const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No Image';
-                    const card = document.createElement('div');
-                    card.className = 'tool-card';
-                    card.innerHTML = `<img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';"><div class="tool-card-content"><h3>${name}</h3><p>${description}</p><a href="${link}" class="tool-link" target="_blank" rel="noopener noreferrer">前往使用</a></div>`;
-                    toolsGrid.appendChild(card);
-                });
-            }
-
-            async function renderCategoryLevel(gid, parentElement) {
-                parentElement.innerHTML = '';
-                showLoader();
-                try {
-                    if (dataCache[gid]) {
-                        processData(dataCache[gid], parentElement);
-                    } else {
-                        const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
-                        if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。`);
-                        const csvText = await response.text();
-                        if (csvText.trim().startsWith('<!DOCTYPE html>')) throw new Error("資料格式不正確，可能需重新發佈。");
-                        const parsedResult = parseCSV(csvText);
-                        dataCache[gid] = parsedResult;
-                        processData(parsedResult, parentElement);
-                    }
-                } catch (error) {
-                    displayError(parentElement, error.message, "請檢查 Google Sheet 設定。");
-                } finally {
-                    hideLoader();
-                }
-            }
-            
-            function processData(parsedResult, parentElement) {
-                const { headers, data } = parsedResult;
-                const isCategoryPage = headers.includes('分類') && headers.includes('gid') && headers.includes('是否有資料夾');
-                const isToolsPage = headers.includes('名稱') && headers.includes('連結');
-
-                if (isCategoryPage) {
-                    toolsGrid.innerHTML = '';
-                    const categories = data.filter(item => item['分類'] && item['gid']);
-                    if (categories.length === 0) {
-                        parentElement.innerHTML = '<p>這個分類下沒有子分類。</p>';
-                        return;
-                    }
-                    categories.forEach(cat => {
-                        const { '分類': catName, gid: catGid, '是否有資料夾': hasFoldersStr } = cat;
-                        const hasFolders = hasFoldersStr === '1';
-
-                        const item = document.createElement('div');
-                        item.className = 'category-item';
-                        const button = document.createElement('button');
-                        button.className = 'category-button';
-                        button.innerHTML = `<i class="arrow"></i> <span>${catName}</span>`;
-                        const subContainer = document.createElement('div');
-                        subContainer.className = 'subcategory-container';
-                        item.append(button, subContainer);
-                        
-                        button.addEventListener('click', () => {
-                            const isCurrentlyActive = button.classList.contains('active');
-                            button.classList.toggle('open');
-                            if (hasFolders) {
-                                subContainer.classList.toggle('open');
-                                if (subContainer.classList.contains('open') && subContainer.innerHTML === '') {
-                                    renderCategoryLevel(catGid, subContainer);
-                                }
-                            } else {
-                                document.querySelectorAll('#category-container .category-button.active').forEach(b => {
-                                    if (b !== button) b.classList.remove('active');
-                                });
-                                button.classList.toggle('active', !isCurrentlyActive);
-                                if (!isCurrentlyActive) {
-                                    renderCategoryLevel(catGid, toolsGrid);
-                                } else {
-                                    toolsGrid.innerHTML = '';
-                                }
-                            }
-                        });
-                        parentElement.appendChild(item);
-                    });
-                } else if (isToolsPage) {
-                    renderTools(data);
-                } else {
-                    const detectedHeaders = headers.join(', ') || '無';
-                    throw new Error(`工作表格式無法識別。偵測到的欄位為：「${detectedHeaders}」。`);
-                }
-            }
-            
-            // --- 程式進入點 ---
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    const pageId = this.dataset.page;
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    pageSections.forEach(section => {
-                        section.classList.toggle('active', section.id === pageId);
-                    });
-                    if (pageId === 'tools' && !toolsLoaded) {
-                        renderCategoryLevel('1860425358', document.getElementById('category-container'));
-                        toolsLoaded = true;
-                    }
-                });
-            });
-            
-            navLinks[0].click();
-        });
-    </script>
-
-    <!-- 重新嵌入隱藏的警告頁面 -->
-    <iframe src="./warning.html" style="display: none;" title="安全警告"></iframe>
-</body>
-</html>
+                container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連
