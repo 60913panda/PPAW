@@ -746,4 +746,123 @@
 
             function displayError(container, message, suggestion) {
                 console.error(message);
-                container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連
+                container.innerHTML = `<div class="error-message"><strong>讀取資料時發生錯誤：</strong><p>${message}</p><p>${suggestion || '請檢查您的 Google Sheet 設定或網路連線。'}</p></div>`;
+            }
+
+            function renderTools(tools) {
+                toolsGrid.innerHTML = '';
+                if (!tools || tools.length === 0) {
+                    toolsGrid.innerHTML = '<p>這個分類下沒有找到任何網站。</p>';
+                    return;
+                }
+                tools.forEach(tool => {
+                    const name = tool['名稱'] || '無標題';
+                    const description = tool['說明'] || '無描述';
+                    const link = tool['連結'] || '#';
+                    const imageUrl = tool['圖片連結'] || 'https://placehold.co/600x400/eef5e9/7b9c81?text=No Image';
+                    const card = document.createElement('div');
+                    card.className = 'tool-card';
+                    card.innerHTML = `<img src="${imageUrl}" alt="${name}" class="tool-card-image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/eef5e9/7b9c81?text=Image+Error';"><div class="tool-card-content"><h3>${name}</h3><p>${description}</p><a href="${link}" class="tool-link" target="_blank" rel="noopener noreferrer">前往使用</a></div>`;
+                    toolsGrid.appendChild(card);
+                });
+            }
+
+            async function renderCategoryLevel(gid, parentElement) {
+                parentElement.innerHTML = '';
+                showLoader();
+                try {
+                    if (dataCache[gid]) {
+                        processData(dataCache[gid], parentElement);
+                    } else {
+                        const response = await fetch(`${baseCsvUrl}&gid=${gid}`);
+                        if (!response.ok) throw new Error(`無法載入工作表 (GID: ${gid})。`);
+                        const csvText = await response.text();
+                        if (csvText.trim().startsWith('<!DOCTYPE html>')) throw new Error("資料格式不正確，可能需重新發佈。");
+                        const parsedResult = parseCSV(csvText);
+                        dataCache[gid] = parsedResult;
+                        processData(parsedResult, parentElement);
+                    }
+                } catch (error) {
+                    displayError(parentElement, error.message, "請檢查 Google Sheet 設定。");
+                } finally {
+                    hideLoader();
+                }
+            }
+            
+            function processData(parsedResult, parentElement) {
+                const { headers, data } = parsedResult;
+                const isCategoryPage = headers.includes('分類') && headers.includes('gid') && headers.includes('是否有資料夾');
+                const isToolsPage = headers.includes('名稱') && headers.includes('連結');
+
+                if (isCategoryPage) {
+                    toolsGrid.innerHTML = '';
+                    const categories = data.filter(item => item['分類'] && item['gid']);
+                    if (categories.length === 0) {
+                        parentElement.innerHTML = '<p>這個分類下沒有子分類。</p>';
+                        return;
+                    }
+                    categories.forEach(cat => {
+                        const { '分類': catName, gid: catGid, '是否有資料夾': hasFoldersStr } = cat;
+                        const hasFolders = hasFoldersStr === '1';
+
+                        const item = document.createElement('div');
+                        item.className = 'category-item';
+                        const button = document.createElement('button');
+                        button.className = 'category-button';
+                        button.innerHTML = `<i class="arrow"></i> <span>${catName}</span>`;
+                        const subContainer = document.createElement('div');
+                        subContainer.className = 'subcategory-container';
+                        item.append(button, subContainer);
+                        
+                        button.addEventListener('click', () => {
+                            const isCurrentlyActive = button.classList.contains('active');
+                            button.classList.toggle('open');
+                            if (hasFolders) {
+                                subContainer.classList.toggle('open');
+                                if (subContainer.classList.contains('open') && subContainer.innerHTML === '') {
+                                    renderCategoryLevel(catGid, subContainer);
+                                }
+                            } else {
+                                document.querySelectorAll('#category-container .category-button.active').forEach(b => {
+                                    if (b !== button) b.classList.remove('active');
+                                });
+                                button.classList.toggle('active', !isCurrentlyActive);
+                                if (!isCurrentlyActive) {
+                                    renderCategoryLevel(catGid, toolsGrid);
+                                } else {
+                                    toolsGrid.innerHTML = '';
+                                }
+                            }
+                        });
+                        parentElement.appendChild(item);
+                    });
+                } else if (isToolsPage) {
+                    renderTools(data);
+                } else {
+                    const detectedHeaders = headers.join(', ') || '無';
+                    throw new Error(`工作表格式無法識別。偵測到的欄位為：「${detectedHeaders}」。`);
+                }
+            }
+            
+            // --- 程式進入點 ---
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const pageId = this.dataset.page;
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    pageSections.forEach(section => {
+                        section.classList.toggle('active', section.id === pageId);
+                    });
+                    if (pageId === 'tools' && !toolsLoaded) {
+                        renderCategoryLevel('1860425358', document.getElementById('category-container'));
+                        toolsLoaded = true;
+                    }
+                });
+            });
+            
+            navLinks[0].click();
+        });
+    </script>
+</body>
+</html>
