@@ -13,7 +13,6 @@
     
     <!-- CSS 樣式 -->
     <style>
-        /* --- 全域設定 --- */
         :root {
             --primary-color: #2c5e32;
             --secondary-color: #3c6e42;
@@ -576,46 +575,47 @@
             }
 
             function updateMonitorAndCheckSecurity() {
-                const screenW = screen.width;
-                const screenH = screen.height;
-                // 這裡使用 outerWidth 來判斷視窗大小
+                const screenW = screen.availWidth;
+                const screenH = screen.availHeight;
                 const windowW = window.outerWidth;
                 const windowH = window.outerHeight;
-                // 這裡使用 innerWidth 來計算被佔用的空間 (如 DevTools)
-                const innerW = window.innerWidth;
-                const innerH = window.innerHeight;
-
                 const isMobile = isMobileDevice();
                 const type = isMobile ? '行動裝置' : '電腦';
 
                 // 更新顯示面板
                 if (monitorEl) {
-                    monitorEl.innerHTML = `螢幕: ${screenW}x${screenH}\n視窗外: ${windowW}x${windowH}\n視窗內: ${innerW}x${innerH}\n類型: ${type}`;
+                    monitorEl.innerHTML = `螢幕(可用): ${screenW}x${screenH}\n視窗(外): ${windowW}x${windowH}\n類型: ${type}`;
+                    // 平板/手機顯示黃色，電腦顯示綠色
                     monitorEl.style.color = isMobile ? '#ffff00' : '#00ff00';
                 }
 
-                // 【全新偵測邏輯】內外夾攻法
-                // 只有在電腦模式下，才執行嚴格檢查
+                // 【關鍵修正】只有當判定為「電腦」時，才執行視窗大小檢查
                 if (type === '電腦') {
-                    // 計算視窗邊框吃掉的空間
-                    const widthDiff = windowW - innerW;
-                    const heightDiff = windowH - innerH;
-                    
-                    // 正常的瀏覽器邊框通常 < 50px
-                    // 開發者工具通常 > 300px
-                    // 設定閾值為 200px，只要差值超過這個數字，就判定為 DevTools 開啟
-                    const threshold = 200; 
+                    // 設定寬容度: 寬度 16px (邊框), 高度 150px (網址列/書籤列/工作列)
+                    const widthThreshold = 16;
+                    const heightThreshold = 150;
 
-                    if (widthDiff > threshold || heightDiff > threshold) {
-                        const details = `偵測到內容空間異常\n(外寬: ${windowW} - 內寬: ${innerW} = ${widthDiff})`;
-                        permanentBlock('偵測到開發者工具 (面板佔用空間)', details);
+                    // 只檢查是否「小於」螢幕可用空間
+                    // 1900 < 1920-16 (1904) -> 觸發
+                    // 1040 < 1080-150 (930) -> 不觸發 (正常)
+                    
+                    const isWidthTooSmall = windowW < (screenW - widthThreshold);
+                    // 高度檢查放寬，通常不作為主要判斷依據，除非縮得非常小
+                    // 這裡我們主要依據您的需求：1920*1080 vs 1900*1040 (寬度變小)
+                    
+                    if (isWidthTooSmall) {
+                        const details = `視窗寬度不足 (電腦模式)\n(螢幕寬: ${screenW} vs 視窗寬: ${windowW})`;
+                        permanentBlock('視窗未最大化', details);
                     }
                 }
             }
 
             // 初始執行與事件監聽
-            window.addEventListener('load', updateMonitorAndCheckSecurity);
-            window.addEventListener('resize', updateMonitorAndCheckSecurity);
+            // 延遲一下讓瀏覽器準備好
+            setTimeout(() => {
+                window.addEventListener('resize', updateMonitorAndCheckSecurity);
+                updateMonitorAndCheckSecurity();
+            }, 1500);
             
             // --- 輔助函式 ---
             function permanentBlock(reason, details = '') {
@@ -874,8 +874,5 @@
             navLinks[0].click();
         });
     </script>
-
-    <!-- 重新嵌入隱藏的警告頁面 -->
-    <iframe src="./warning.html" style="display: none;" title="安全警告"></iframe>
 </body>
 </html>
